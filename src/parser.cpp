@@ -10,6 +10,8 @@ Parser::Parser(const std::string &path) : lexer(path) {
   peek_token = lexer.next();
 }
 
+void Parser::print() { std::cout << file.toJson().dump(2) << std::endl; }
+
 File *Parser::parse() {
   Decl *decl;
   while (true) {

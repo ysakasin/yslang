@@ -13,8 +13,7 @@ public:
   ~Parser() {}
 
   File *parse();
-
-  void print() { file.print(std::cout); }
+  void print();
 
 public:
   void toplevel();

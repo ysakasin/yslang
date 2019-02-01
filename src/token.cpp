@@ -1,4 +1,5 @@
 #include "./token.hpp"
+#include <sstream>
 
 using namespace yslang;
 

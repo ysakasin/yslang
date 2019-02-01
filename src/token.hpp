@@ -49,7 +49,7 @@ public:
   Token(TokenType type) : type(type) {}
   Token(TokenType type, std::string &&str) : type(type), str(str) {}
 
-  bool isEOF() { return type == TokenType::TEOF; }
+  bool isEOF() const { return type == TokenType::TEOF; }
 
 public:
   TokenType type;
