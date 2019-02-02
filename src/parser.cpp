@@ -27,91 +27,6 @@ File *Parser::parse() {
   return &file;
 }
 
-// void Parser::file(llvm::Function *func) {
-//   ident_table.enterBlock();
-//   std::vector<std::string> vars;
-//   while (true) {
-//     if (cur_token.type == TokenType::Const) {
-//       constDecl();
-//     } else if (cur_token.type == TokenType::Var) {
-//       varDecl(&vars);
-//     } else if (cur_token.type == TokenType::Function) {
-//       functionDecl();
-//     } else {
-//       break;
-//     }
-//   }
-
-//   curFunc = func;
-//   builder.SetInsertPoint(&func->getEntryBlock());
-//   auto itr = func->arg_begin();
-//   for (size_t i = 0; i < func->arg_size(); i++) {
-//     auto *alloca =
-//         builder.CreateAlloca(builder.getInt64Ty(), 0, itr->getName());
-//     builder.CreateStore(itr, alloca);
-//     ident_table.appendVar(itr->getName(), alloca);
-//     itr++;
-//   }
-//   for (const auto &var : vars) {
-//     auto *alloca = builder.CreateAlloca(builder.getInt64Ty(), 0, var);
-//     ident_table.appendVar(var, alloca);
-//   }
-//   statement();
-//   ident_table.leaveBlock();
-// }
-
-// void Parser::constDecl() {
-//   takeToken(TokenType::Const);
-//   while (true) {
-//     if (cur_token.type != TokenType::Ident) {
-//       parseError(TokenType::Ident, cur_token.type);
-//     }
-
-//     std::string const_name = cur_token.ident;
-//     next();
-//     takeToken(TokenType::Equal);
-
-//     if (cur_token.type != TokenType::Integer) {
-//       parseError(TokenType::Integer, cur_token.type);
-//     }
-
-//     ident_table.appendConst(const_name, builder.getInt64(cur_token.integer));
-//     next();
-
-//     if (cur_token.type == TokenType::Colon) {
-//       next();
-//       // continue;
-//     } else if (cur_token.type == TokenType::Semicolon) {
-//       next();
-//       break;
-//     } else {
-//       throw "unexpected at constDecl";
-//     }
-//   }
-// }
-
-// void Parser::varDecl(std::vector<std::string> *vars) {
-//   takeToken(TokenType::Var);
-//   while (true) {
-//     if (cur_token.type != TokenType::Ident) {
-//       parseError(TokenType::Ident, cur_token.type);
-//     }
-
-//     vars->push_back(cur_token.ident);
-//     next();
-
-//     if (cur_token.type == TokenType::Colon) {
-//       next();
-//       // continue;
-//     } else if (cur_token.type == TokenType::Semicolon) {
-//       next();
-//       break;
-//     } else {
-//       error("unexpected at varDecl");
-//     }
-//   }
-// }
-
 FuncDecl *Parser::funcDecl() {
   takeToken(TokenType::Func);
   if (cur_token.type != TokenType::Ident) {
@@ -127,7 +42,7 @@ FuncDecl *Parser::funcDecl() {
       break;
     }
 
-    // std::string name = std::move(cur_token.str);
+    std::string name = std::move(cur_token.str);
     nextToken();
     takeToken(TokenType::Colon);
 
@@ -135,10 +50,10 @@ FuncDecl *Parser::funcDecl() {
       throw "need type";
     }
 
-    // std::string type = std::move(cur_token.str);
+    std::string type = std::move(cur_token.str);
     nextToken();
 
-    // params.push_back({name, type});
+    params.push_back({name, type});
     if (cur_token.type == TokenType::Comma) {
       nextToken();
     } else {

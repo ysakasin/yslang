@@ -1,4 +1,6 @@
 #include "./codegen.hpp"
+#include "./error.hpp"
+#include <llvm/IR/ValueSymbolTable.h>
 
 using namespace yslang;
 
@@ -22,16 +24,30 @@ void CodeGen::visitDecl(Decl *decl) {
   }
 }
 
+llvm::Type *CodeGen::getTypeByName(const std::string &name) {
+  if (name == "i64") {
+    return builder.getInt64Ty();
+  } else if (name == "void") {
+    return builder.getVoidTy();
+  } else {
+    error("unknown type " + name + " at getTypeByName");
+    throw;
+  }
+}
+
 llvm::FunctionType *CodeGen::getFuncType(const FuncType &funcType) {
   std::vector<llvm::Type *> param_types;
   llvm::Type *funcResult;
   if (funcType.results.size() == 0) {
     funcResult = builder.getVoidTy();
-  } else if (funcType.results[0] == "i64") {
-    funcResult = builder.getInt64Ty();
   } else {
-    throw "err";
+    funcResult = getTypeByName(funcType.results[0]);
   }
+
+  for (const auto &arg : funcType.args) {
+    param_types.push_back(getTypeByName(arg.type));
+  }
+
   return llvm::FunctionType::get(funcResult, param_types, false);
 }
 
@@ -41,7 +57,16 @@ void CodeGen::visitFuncDecl(FuncDecl *func_decl) {
                                       func_decl->name, module);
   auto *bblock = llvm::BasicBlock::Create(context, "entry", func);
   builder.SetInsertPoint(bblock);
+
+  llvm::Function::arg_iterator arg_iter = func->arg_begin();
+  for (const auto &arg : func_decl->func_type.args) {
+    arg_iter->setName(arg.name);
+    ++arg_iter;
+  }
+
+  curFunc = func;
   visitBlock(func_decl->body);
+  curFunc = nullptr;
 }
 
 void CodeGen::visitBlock(BlockStmt *block) {
@@ -83,16 +108,22 @@ llvm::Value *CodeGen::genExpr(Expr *expr) {
   case Expr::Type::CallExpr:
     return genCallExpr((CallExpr *)expr);
   default:
-    throw "err: genExpr";
+    error("unknown expression at genExpr");
   }
 }
 
 llvm::Value *CodeGen::genIdent(Ident *ident) {
   auto itr = local_vals.find(ident->name);
-  if (itr == local_vals.end()) {
-    throw "err: genIdent";
+  if (itr != local_vals.end()) {
+    return builder.CreateLoad(itr->second);
   }
-  return builder.CreateLoad(itr->second);
+
+  auto *vs_table = curFunc->getValueSymbolTable();
+  llvm::Value *v = vs_table->lookup(ident->name);
+  if (v == nullptr) {
+    error("undefined ident " + ident->name + " at genIdent");
+  }
+  return v;
 }
 
 llvm::Value *CodeGen::genBasicLit(BasicLit *lit) {
@@ -100,7 +131,8 @@ llvm::Value *CodeGen::genBasicLit(BasicLit *lit) {
   case TokenType::Integer:
     return builder.getInt64(std::stoll(lit->value));
   default:
-    throw "err";
+    error("unsupported literal at genBasicLit");
+    throw;
   }
 }
 
@@ -109,8 +141,15 @@ llvm::Value *CodeGen::genCallExpr(CallExpr *callExpr) {
   switch (callExpr->func->type) {
   case Expr::Type::Ident:
     func = module->getFunction(((Ident *)callExpr->func)->name);
-    return builder.CreateCall(func);
+    break;
   default:
-    throw "err";
+    error("unsupported expr at genCallExpr");
+    throw;
   }
+
+  std::vector<llvm::Value *> args;
+  for (Expr *expr : callExpr->args) {
+    args.push_back(genExpr(expr));
+  }
+  return builder.CreateCall(func, args);
 }

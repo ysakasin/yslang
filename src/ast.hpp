@@ -99,6 +99,9 @@ public:
 
 class FuncType {
 public:
+  nlohmann::json toJson() const;
+
+public:
   class Arg {
   public:
     std::string name;

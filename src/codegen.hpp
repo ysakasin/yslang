@@ -29,7 +29,6 @@ private:
   llvm::Value *genCallExpr(CallExpr *lit);
 
   llvm::FunctionType *getFuncType(const FuncType &type);
-
   llvm::Type *getTypeByName(const std::string &name);
 
 private:

@@ -62,11 +62,22 @@ json ReturnStmt::toJson() const {
   return j;
 }
 
+json FuncType::toJson() const {
+  json j;
+  j["results"] = json(results);
+  j["args"] = json::array();
+  for (const auto &arg : args) {
+    j["args"].push_back({{"name", arg.name}, {"type", arg.type}});
+  }
+  return j;
+}
+
 json FuncDecl::toJson() const {
   json j;
   j["#ast type"] = "FuncDecl";
   j["name"] = name;
   j["body"] = body->toJson();
+  j["type"] = func_type.toJson();
   return j;
 }
 
