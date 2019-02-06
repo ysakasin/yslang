@@ -22,6 +22,7 @@ private:
   void visitStmt(Stmt *stmt);
   void visitLetStmt(LetStmt *stmt);
   void visitReturnStmt(ReturnStmt *stmt);
+  void visitIfStmt(IfStmt *stmt);
 
   llvm::Value *genExpr(Expr *expr);
   llvm::Value *genIdent(Ident *ident);

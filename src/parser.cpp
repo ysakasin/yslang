@@ -92,31 +92,8 @@ BlockStmt *Parser::blockStmt() {
 
 Stmt *Parser::statement() {
   switch (cur_token.type) {
-  // case TokenType::Ident:
-  //   statementAssign();
-  //   return;
-  // case TokenType::Begin:
-  //   next();
-  //   while (true) {
-  //     statement();
-  //     if (cur_token.type == TokenType::Semicolon) {
-  //       takeToken(TokenType::Semicolon);
-  //       // continue;
-  //     } else if (cur_token.type == TokenType::End) {
-  //       takeToken(TokenType::End);
-  //       break;
-  //     } else {
-  //       lexer.print_head();
-  //       parseError(TokenType::End, cur_token.type);
-  //     }
-  //   }
-  //   return;
-  // case TokenType::If:
-  //   statementIf();
-  //   return;
-  // case TokenType::While:
-  //   statementWhile();
-  //   return;
+  case TokenType::If:
+    return ifStmt();
   case TokenType::Let:
     return letStmt();
   case TokenType::Return:
@@ -164,26 +141,18 @@ ReturnStmt *Parser::returnStmt() {
 //   return;
 // }
 
-// void Parser::statementIf() {
-//   takeToken(TokenType::If);
+IfStmt *Parser::ifStmt() {
+  takeToken(TokenType::If);
 
-//   auto *cond = condition();
+  auto *cond = expr();
+  auto *then_block = blockStmt();
 
-//   takeToken(TokenType::Then);
-
-//   auto *then_block = llvm::BasicBlock::Create(context, "if.then", curFunc);
-//   auto *merge_block = llvm::BasicBlock::Create(context, "if.merge");
-
-//   builder.CreateCondBr(cond, then_block, merge_block);
-
-//   builder.SetInsertPoint(then_block);
-//   statement();
-//   builder.CreateBr(merge_block);
-//   then_block = builder.GetInsertBlock();
-
-//   curFunc->getBasicBlockList().push_back(merge_block);
-//   builder.SetInsertPoint(merge_block);
-// }
+  IfStmt *stmt = new IfStmt();
+  stmt->cond = cond;
+  stmt->then_block = then_block;
+  stmt->else_block = nullptr;
+  return stmt;
+}
 
 // void Parser::statementWhile() {
 //   takeToken(TokenType::While);

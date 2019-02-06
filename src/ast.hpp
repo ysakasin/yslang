@@ -24,7 +24,7 @@ public:
 
 class Stmt : public Node {
 public:
-  enum class Type { Block, Return, Let };
+  enum class Type { Block, Return, Let, If };
   Stmt(Type type) : type(type){};
 
 public:
@@ -95,6 +95,17 @@ public:
 
 public:
   std::vector<Expr *> results;
+};
+
+class IfStmt : public Stmt {
+public:
+  IfStmt() : Stmt(Stmt::Type::If) {}
+  nlohmann::json toJson() const;
+
+public:
+  Expr *cond;
+  BlockStmt *then_block;
+  BlockStmt *else_block;
 };
 
 class FuncType {

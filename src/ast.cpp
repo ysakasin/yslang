@@ -62,6 +62,19 @@ json ReturnStmt::toJson() const {
   return j;
 }
 
+json IfStmt::toJson() const {
+  json j;
+  j["#ast type"] = "IfStmt";
+  j["cond"] = cond->toJson();
+  j["then_block"] = then_block->toJson();
+  if (else_block != nullptr) {
+    j["else_block"] = else_block->toJson();
+  } else {
+    j["else_block"] = "nullptr";
+  }
+  return j;
+}
+
 json FuncType::toJson() const {
   json j;
   j["results"] = json(results);

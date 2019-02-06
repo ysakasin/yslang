@@ -83,7 +83,11 @@ void CodeGen::visitStmt(Stmt *stmt) {
   case Stmt::Type::Return:
     visitReturnStmt((ReturnStmt *)stmt);
     break;
-  default:;
+  case Stmt::Type::If:
+    visitIfStmt((IfStmt *)stmt);
+    break;
+  default:
+    error("visitStmt");
   }
 }
 
@@ -97,6 +101,23 @@ void CodeGen::visitLetStmt(LetStmt *stmt) {
 void CodeGen::visitReturnStmt(ReturnStmt *stmt) {
   auto *retVal = genExpr(stmt->results[0]);
   builder.CreateRet(retVal);
+}
+
+void CodeGen::visitIfStmt(IfStmt *stmt) {
+  auto *cond = genExpr(stmt->cond);
+
+  auto *then_block = llvm::BasicBlock::Create(context, "if.then", curFunc);
+  auto *merge_block = llvm::BasicBlock::Create(context, "if.merge");
+
+  builder.CreateCondBr(cond, then_block, merge_block);
+
+  builder.SetInsertPoint(then_block);
+  visitBlock(stmt->then_block);
+  builder.CreateBr(merge_block);
+  then_block = builder.GetInsertBlock();
+
+  curFunc->getBasicBlockList().push_back(merge_block);
+  builder.SetInsertPoint(merge_block);
 }
 
 llvm::Value *CodeGen::genExpr(Expr *expr) {

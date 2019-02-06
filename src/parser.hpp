@@ -25,9 +25,7 @@ public:
   Stmt *statement();
   ReturnStmt *returnStmt();
   LetStmt *letStmt();
-  void statementAssign();
-  void statementIf();
-  void statementWhile();
+  IfStmt *ifStmt();
 
   Expr *expr();
   Expr *term();
