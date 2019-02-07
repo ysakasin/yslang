@@ -1,5 +1,6 @@
 #include <string>
 
+#include "./error.hpp"
 #include "./parser.hpp"
 
 using namespace yslang;
@@ -14,23 +15,43 @@ void Parser::print() { std::cout << file.toJson().dump(2) << std::endl; }
 
 File *Parser::parse() {
   Decl *decl;
-  while (true) {
+  while (cur_token.type != TokenType::TEOF) {
     switch (cur_token.type) {
     case TokenType::Func:
       decl = funcDecl();
       break;
+    case TokenType::Const:
+      decl = constDecl();
+      break;
     default:
-      return &file;
+      error("unexpected token at parse()");
     }
     file.decls.push_back(decl);
   }
   return &file;
 }
 
+ConstDecl *Parser::constDecl() {
+  takeToken(TokenType::Const);
+  if (cur_token.type != TokenType::Ident) {
+    error("expected Ident at constDecl()");
+  }
+  std::string name = std::move(cur_token.str);
+  nextToken();
+
+  takeToken(TokenType::Assign);
+  Expr *body = expr();
+
+  ConstDecl *decl = new ConstDecl();
+  decl->name = std::move(name);
+  decl->expr = body;
+  return decl;
+}
+
 FuncDecl *Parser::funcDecl() {
   takeToken(TokenType::Func);
   if (cur_token.type != TokenType::Ident) {
-    // parseError(TokenType::Ident, cur_token.type);
+    error("no Ident at funcDecl()");
   }
   std::string func_name = std::move(cur_token.str);
   nextToken();
@@ -47,7 +68,7 @@ FuncDecl *Parser::funcDecl() {
     takeToken(TokenType::Colon);
 
     if (cur_token.type != TokenType::Ident) {
-      throw "need type";
+      error("function is needed type");
     }
 
     std::string type = std::move(cur_token.str);
@@ -245,7 +266,7 @@ Expr *Parser::parseOperand() {
 CallExpr *Parser::parseCallExpr(Expr *callee) {
   std::vector<Expr *> args;
   takeToken(TokenType::ParenL);
-  while (true) {
+  while (cur_token.type != TokenType::ParenR) {
     args.push_back(expr());
     if (cur_token.type == TokenType::Comma) {
       nextToken();

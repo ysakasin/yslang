@@ -94,6 +94,14 @@ json FuncDecl::toJson() const {
   return j;
 }
 
+json ConstDecl::toJson() const {
+  json j;
+  j["#ast type"] = "ConstDecl";
+  j["name"] = name;
+  j["expr"] = expr->toJson();
+  return j;
+}
+
 json File::toJson() const {
   json j;
   j["#ast type"] = "File";

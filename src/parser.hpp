@@ -18,7 +18,7 @@ public:
 public:
   void toplevel();
 
-  void constDecl();
+  ConstDecl *constDecl();
   void varDecl(std::vector<std::string> *vars);
   FuncDecl *funcDecl();
   BlockStmt *blockStmt();

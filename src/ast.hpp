@@ -15,7 +15,7 @@ public:
 
 class Decl : public Node {
 public:
-  enum class Type { Func };
+  enum class Type { Const, Func };
   Decl(Type type) : type(type){};
 
 public:
@@ -131,6 +131,16 @@ public:
   std::string name;
   FuncType func_type;
   BlockStmt *body;
+};
+
+class ConstDecl : public Decl {
+public:
+  ConstDecl() : Decl(Decl::Type::Const) {}
+  nlohmann::json toJson() const;
+
+public:
+  std::string name;
+  Expr *expr;
 };
 
 class File : public Node {
