@@ -36,22 +36,26 @@ Token Lexer::next() {
   case '"':
     return read_string_lit();
   case '\0':
-    return std::move(Token(TokenType::TEOF));
+    return Token(TokenType::TEOF);
   case '+':
     readc();
-    return std::move(Token(TokenType::Plus));
+    return Token(TokenType::Plus);
   case '-':
     readc();
-    return std::move(Token(TokenType::Minus));
+    return Token(TokenType::Minus);
   case '*':
     readc();
-    return std::move(Token(TokenType::Mul));
+    return Token(TokenType::Mul);
   case '/':
     readc();
-    return std::move(Token(TokenType::Div));
+    return Token(TokenType::Div);
   case '=':
     readc();
-    return std::move(Token(TokenType::Assign));
+    if (try_readc('=')) {
+      return Token(TokenType::Equal);
+    } else {
+      return Token(TokenType::Assign);
+    }
   case '<':
     readc();
     if (try_readc('=')) {
