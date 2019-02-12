@@ -33,11 +33,22 @@ public:
 
 class Expr : public Node {
 public:
-  enum class Type { BasicLit, Ident, CallExpr };
+  enum class Type { BasicLit, Ident, CallExpr, BinaryExpr };
   Expr(Type type) : type(type){};
 
 public:
   const Type type;
+};
+
+class BinaryExpr : public Expr {
+public:
+  BinaryExpr() : Expr(Expr::Type::BinaryExpr) {}
+  nlohmann::json toJson() const;
+
+public:
+  Expr *lhs;
+  TokenType op;
+  Expr *rhs;
 };
 
 class Ident : public Expr {

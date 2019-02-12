@@ -1,5 +1,6 @@
 #include "./codegen.hpp"
 #include "./error.hpp"
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueSymbolTable.h>
 
 using namespace yslang;
@@ -19,6 +20,9 @@ void CodeGen::visitDecl(Decl *decl) {
   switch (decl->type) {
   case Decl::Type::Func:
     visitFuncDecl((FuncDecl *)decl);
+    break;
+  case Decl::Type::Const:
+    visitConstDecl(dynamic_cast<ConstDecl *>(decl));
     break;
   default:;
   }
@@ -67,6 +71,15 @@ void CodeGen::visitFuncDecl(FuncDecl *func_decl) {
   curFunc = func;
   visitBlock(func_decl->body);
   curFunc = nullptr;
+}
+
+void CodeGen::visitConstDecl(ConstDecl *const_decl) {
+  auto *val = genExpr(const_decl->expr);
+  auto *constant = llvm::dyn_cast<llvm::Constant>(val);
+  auto *g =
+      new llvm::GlobalVariable(*module, constant->getType(), true,
+                               llvm::GlobalValue::LinkageTypes::PrivateLinkage,
+                               constant, const_decl->name);
 }
 
 void CodeGen::visitBlock(BlockStmt *block) {
@@ -128,8 +141,11 @@ llvm::Value *CodeGen::genExpr(Expr *expr) {
     return genBasicLit((BasicLit *)expr);
   case Expr::Type::CallExpr:
     return genCallExpr((CallExpr *)expr);
+  case Expr::Type::BinaryExpr:
+    return genBinaryExpr((BinaryExpr *)expr);
   default:
     error("unknown expression at genExpr");
+    return nullptr;
   }
 }
 
@@ -141,6 +157,11 @@ llvm::Value *CodeGen::genIdent(Ident *ident) {
 
   auto *vs_table = curFunc->getValueSymbolTable();
   llvm::Value *v = vs_table->lookup(ident->name);
+  if (v != nullptr) {
+    return v;
+  }
+
+  v = module->getNamedValue(ident->name);
   if (v == nullptr) {
     error("undefined ident " + ident->name + " at genIdent");
   }
@@ -173,4 +194,16 @@ llvm::Value *CodeGen::genCallExpr(CallExpr *callExpr) {
     args.push_back(genExpr(expr));
   }
   return builder.CreateCall(func, args);
+}
+
+llvm::Value *CodeGen::genBinaryExpr(BinaryExpr *expr) {
+  llvm::Value *lhs = genExpr(expr->lhs);
+  llvm::Value *rhs = genExpr(expr->rhs);
+  switch (expr->op) {
+  case TokenType::Plus:
+    return builder.CreateAdd(lhs, rhs);
+  default:
+    error("not support binop");
+    throw;
+  }
 }

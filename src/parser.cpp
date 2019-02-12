@@ -236,7 +236,22 @@ IfStmt *Parser::ifStmt() {
 //   }
 // }
 
-Expr *Parser::expr() { return factor(); }
+Expr *Parser::expr() { return binaryExpr(); }
+
+Expr *Parser::binaryExpr() {
+  Expr *lhs = factor();
+  while (cur_token.isOP()) {
+    auto op = cur_token.type;
+    nextToken();
+    Expr *rhs = binaryExpr();
+    BinaryExpr *new_lhs = new BinaryExpr();
+    new_lhs->lhs = lhs;
+    new_lhs->op = op;
+    new_lhs->rhs = rhs;
+    lhs = (Expr *)new_lhs;
+  }
+  return lhs;
+}
 
 Expr *Parser::factor() {
   Expr *ret = parseOperand();

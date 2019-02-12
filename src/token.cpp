@@ -3,6 +3,14 @@
 
 using namespace yslang;
 
+bool Token::isOP() const {
+  return type == TokenType::Plus || type == TokenType::Minus ||
+         type == TokenType::Mul || type == TokenType::Div ||
+         type == TokenType::Equal || type == TokenType::NotEqual ||
+         type == TokenType::Greater || type == TokenType::GreaterEqual ||
+         type == TokenType::Less || type == TokenType::LessEqual;
+}
+
 std::ostream &operator<<(std::ostream &out, const TokenType type) {
   switch (type) {
   case TokenType::Integer:

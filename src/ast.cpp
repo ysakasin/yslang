@@ -4,6 +4,19 @@
 using namespace yslang;
 using json = nlohmann::json;
 
+json BinaryExpr::toJson() const {
+  json j;
+  std::stringstream ss;
+
+  ss << op;
+
+  j["#ast type"] = "Ident";
+  j["0 lhs"] = lhs->toJson();
+  j["1 op"] = ss.str();
+  j["2 rhs"] = rhs->toJson();
+  return j;
+}
+
 json Ident::toJson() const {
   json j;
   j["#ast type"] = "Ident";

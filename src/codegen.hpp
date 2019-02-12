@@ -18,6 +18,7 @@ private:
   void visitFile(File *file);
   void visitDecl(Decl *decl);
   void visitFuncDecl(FuncDecl *func);
+  void visitConstDecl(ConstDecl *constDecl);
   void visitBlock(BlockStmt *block);
   void visitStmt(Stmt *stmt);
   void visitLetStmt(LetStmt *stmt);
@@ -28,6 +29,7 @@ private:
   llvm::Value *genIdent(Ident *ident);
   llvm::Value *genBasicLit(BasicLit *lit);
   llvm::Value *genCallExpr(CallExpr *lit);
+  llvm::Value *genBinaryExpr(BinaryExpr *expr);
 
   llvm::FunctionType *getFuncType(const FuncType &type);
   llvm::Type *getTypeByName(const std::string &name);

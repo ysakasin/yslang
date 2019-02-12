@@ -22,8 +22,8 @@ enum class TokenType {
   Mul,   // *
   Div,   // /
 
-  Equal,        // =
-  NotEqual,     // <>
+  Equal,        // ==
+  NotEqual,     // !=
   Less,         // <
   LessEqual,    // <=
   Greater,      // >
@@ -50,6 +50,7 @@ public:
   Token(TokenType type, std::string &&str) : type(type), str(str) {}
 
   bool isEOF() const { return type == TokenType::TEOF; }
+  bool isOP() const;
 
 public:
   TokenType type;

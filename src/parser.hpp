@@ -28,6 +28,7 @@ public:
   IfStmt *ifStmt();
 
   Expr *expr();
+  Expr *binaryExpr();
   Expr *term();
   Expr *factor();
   Expr *factorIdent();

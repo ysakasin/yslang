@@ -1,0 +1,9 @@
+const A = 1 + 1
+
+func retA() i64 {
+  return A
+}
+
+func main() i64 {
+  return retA()
+}
