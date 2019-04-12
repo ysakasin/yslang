@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
   if (cmd.exist("tokens")) {
     yslang::Lexer lexer(cmd.rest()[0]);
-    lexer.print_all();
+    // lexer.print_all();
   }
 
   yslang::Parser parser(cmd.rest()[0]);

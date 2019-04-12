@@ -17,6 +17,7 @@ add_definitions(${LLVM_DEFINITIONS})
 llvm_map_components_to_libnames(llvm_libs all)
 
 add_subdirectory(src)
+add_subdirectory(test)
 add_executable(ys src/main.cpp)
 target_link_libraries(ys yslang ${llvm_libs})
 # add_executable(llvmpl0 llvm_frontend.cpp lexer.cpp)

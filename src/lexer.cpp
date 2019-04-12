@@ -5,28 +5,17 @@ using namespace yslang;
 
 std::map<std::string, TokenType> Lexer::keywords;
 
-bool Lexer::try_readc(char c) {
-  if (c == peekc()) {
-    head++;
-    return true;
-  }
-  return false;
-}
-
-Lexer::Lexer(const std::string &path) : path(path) {
+Lexer::Lexer(const std::string &input) : input(input) {
   Lexer::init_keywords();
-  std::ifstream ifs(path);
-  if (ifs.fail()) {
-    throw "Can not open " + path;
-  }
-  std::istreambuf_iterator<char> it(ifs);
-  std::istreambuf_iterator<char> last;
-  source_program = std::move(std::string(it, last));
+  read_char();
 }
 
 Token Lexer::next() {
+  Token token;
+
   skip_blank();
-  switch (peekc()) {
+
+  switch (this->ch) {
   case '0' ... '9':
     return read_number();
   case 'a' ... 'z':
@@ -36,115 +25,124 @@ Token Lexer::next() {
   case '"':
     return read_string_lit();
   case '\0':
-    return Token(TokenType::TEOF);
+    token.type = TokenType::TEOF;
+    break;
   case '+':
-    readc();
-    return Token(TokenType::Plus);
+    token.type = TokenType::Plus;
+    break;
   case '-':
-    readc();
-    return Token(TokenType::Minus);
+    token.type = TokenType::Minus;
+    break;
   case '*':
-    readc();
-    return Token(TokenType::Mul);
+    token.type = TokenType::Mul;
+    break;
   case '/':
-    readc();
-    return Token(TokenType::Div);
+    token.type = TokenType::Div;
+    break;
   case '=':
-    readc();
-    if (try_readc('=')) {
-      return Token(TokenType::Equal);
+    if (peek_char() == '=') {
+      read_char();
+      token.type = TokenType::Equal;
     } else {
-      return Token(TokenType::Assign);
+      token.type = TokenType::Assign;
     }
+    break;
   case '<':
-    readc();
-    if (try_readc('=')) {
-      return Token(TokenType::LessEqual);
-    } else if (try_readc('>')) {
-      return Token(TokenType::NotEqual);
+    if (peek_char() == '=') {
+      read_char();
+      token.type = TokenType::LessEqual;
     } else {
-      return Token(TokenType::Less);
+      token.type = TokenType::Less;
     }
+    break;
   case '>':
-    readc();
-    if (try_readc('=')) {
-      return Token(TokenType::GreaterEqual);
+    if (peek_char() == '=') {
+      read_char();
+      token.type = TokenType::GreaterEqual;
     } else {
-      return Token(TokenType::Greater);
+      token.type = TokenType::Greater;
     }
+    break;
   case '(':
-    readc();
-    return Token(TokenType::ParenL);
+    token.type = TokenType::ParenL;
+    break;
   case ')':
-    readc();
-    return Token(TokenType::ParenR);
+    token.type = TokenType::ParenR;
+    break;
   case '{':
-    readc();
-    return Token(TokenType::BraceL);
+    token.type = TokenType::BraceL;
+    break;
   case '}':
-    readc();
-    return Token(TokenType::BraceR);
+    token.type = TokenType::BraceR;
+    break;
   case '.':
-    readc();
-    return Token(TokenType::Dot);
+    token.type = TokenType::Dot;
+    break;
   case ':':
-    readc();
-    if (try_readc('=')) {
-      return Token(TokenType::Assign);
+    if (peek_char() == '=') {
+      read_char();
+      token.type = TokenType::Assign;
     } else {
-      return Token(TokenType::Colon);
+      token.type = TokenType::Colon;
     }
+    break;
   case ';':
-    readc();
-    return Token(TokenType::Semicolon);
+    token.type = TokenType::Semicolon;
+    break;
   case ',':
-    readc();
-    return Token(TokenType::Comma);
+    token.type = TokenType::Comma;
+    break;
   default:
-    throw "invalid char";
+    throw "invalid char: " + std::string{ this->ch };
   }
-}
 
-Token Lexer::take(TokenType type) {
-  Token t = next();
-  if (t.type != type) {
-    throw "unexpected token";
-  }
-  return std::move(t);
-}
-
-void Lexer::print_all() {
-  while (true) {
-    Token token = next();
-    std::cout << token << std::endl;
-    if (token.type == TokenType::TEOF) {
-      break;
-    }
-  }
+  read_char();
+  return token;
 }
 
 void Lexer::skip_blank() {
   // skip ' ', '\n', \t', '\v', '\f', '\r'
-  while (isspace(peekc())) {
-    readc();
+  while (isspace(this->ch)) {
+    read_char();
+  }
+}
+
+void Lexer::read_char() {
+  if (read_position >= input.size()) {
+    this->ch = '\0';
+  } else {
+    this->ch = input[read_position];
+  }
+  position = read_position++;
+}
+
+char Lexer::peek_char() {
+  if (read_position >= input.size()) {
+    return '\0';
+  } else {
+    return input[read_position];
   }
 }
 
 Token Lexer::read_number() {
-  std::string digit;
-  while (isdigit(peekc())) {
-    digit.push_back(readc());
+  size_t pos = position;
+
+  while (isdigit(this->ch)) {
+    read_char();
   }
-  return Token(TokenType::Integer, std::move(digit));
+  return Token(TokenType::Integer, input.substr(pos, position - pos));
 }
 
 bool is_ident_piece(char c) { return isalnum(c) || c == '_'; }
 
 Token Lexer::read_ident() {
-  std::string ident;
-  while (is_ident_piece(peekc())) {
-    ident.push_back(readc());
+  size_t pos = position;
+
+  while (is_ident_piece(this->ch)) {
+    read_char();
   }
+
+  std::string ident = input.substr(pos, position - pos);
 
   auto itr = keywords.find(ident);
   if (itr == keywords.end()) {
@@ -155,17 +153,14 @@ Token Lexer::read_ident() {
 }
 
 Token Lexer::read_string_lit() {
-  readc(); // take '"'
+  size_t pos = position + 1;
 
-  std::string str;
-  char c;
-  while ((c = readc()) != '"') {
-    str.push_back(c);
+  while (this->ch != '"') {
+    read_char();
   }
-  return Token(TokenType::String, std::move(str));
-}
 
-void Lexer::print_head() { std::cout << "head: " << head << std::endl; }
+  return Token(TokenType::String, input.substr(pos, position - pos - 1));
+}
 
 void Lexer::init_keywords() {
   if (keywords.size() != 0) {
