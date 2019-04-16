@@ -1,3 +1,4 @@
+#include <sstream>
 #include <string>
 
 #include "./error.hpp"
@@ -5,90 +6,65 @@
 
 using namespace yslang;
 
-Parser::Parser(const std::string &path) : lexer(path) {
-  file.path = path;
-  cur_token = lexer.next();
-  peek_token = lexer.next();
+Parser::Parser(const std::string &input) : lexer(input) {
+  next_token();
+  next_token();
+
+  prefix_parse_functions[TokenType::Integer] = &Parser::parseIntegerLiteral;
 }
 
-void Parser::print() { std::cout << file.toJson().dump(2) << std::endl; }
+Program Parser::parse() {
+  Program program;
 
-File *Parser::parse() {
-  Decl *decl;
   while (cur_token.type != TokenType::TEOF) {
-    switch (cur_token.type) {
-    case TokenType::Func:
-      decl = funcDecl();
-      break;
-    case TokenType::Const:
-      decl = constDecl();
-      break;
-    default:
-      error("unexpected token at parse()");
-    }
-    file.decls.push_back(decl);
+    Decl *decl = parse_decl();
+    program.decls.push_back(decl);
+    next_token();
   }
-  return &file;
+
+  return program;
 }
 
-ConstDecl *Parser::constDecl() {
-  takeToken(TokenType::Const);
-  if (cur_token.type != TokenType::Ident) {
-    error("expected Ident at constDecl()");
+Decl *Parser::parse_decl() {
+  std::stringstream ss;
+  switch (cur_token.type) {
+  case TokenType::Func:
+    return parse_func_decl();
+  // case TokenType::Const:
+  //   return constDecl();
+  default:
+    ss << "unexpected token at parse(): " << cur_token;
+    error(ss.str());
   }
-  std::string name = std::move(cur_token.str);
-  nextToken();
-
-  takeToken(TokenType::Assign);
-  Expr *body = expr();
-
-  ConstDecl *decl = new ConstDecl();
-  decl->name = std::move(name);
-  decl->expr = body;
-  return decl;
+  return nullptr;
 }
 
-FuncDecl *Parser::funcDecl() {
-  takeToken(TokenType::Func);
-  if (cur_token.type != TokenType::Ident) {
+// ConstDecl *Parser::constDecl() {
+//   takeToken(TokenType::Const);
+//   if (cur_token.type != TokenType::Ident) {
+//     error("expected Ident at constDecl()");
+//   }
+//   std::string name = std::move(cur_token.str);
+//   next_token();
+
+//   takeToken(TokenType::Assign);
+//   Expr *body = expr();
+
+//   ConstDecl *decl = new ConstDecl();
+//   decl->name = std::move(name);
+//   decl->expr = body;
+//   return decl;
+// }
+
+FuncDecl *Parser::parse_func_decl() {
+  if (!expect_peek(TokenType::Ident)) {
     error("no Ident at funcDecl()");
   }
+
   std::string func_name = std::move(cur_token.str);
-  nextToken();
+  next_token();
 
-  std::vector<FuncType::Arg> params;
-  takeToken(TokenType::ParenL);
-  while (true) {
-    if (cur_token.type != TokenType::Ident) {
-      break;
-    }
-
-    std::string name = std::move(cur_token.str);
-    nextToken();
-    takeToken(TokenType::Colon);
-
-    if (cur_token.type != TokenType::Ident) {
-      error("function is needed type");
-    }
-
-    std::string type = std::move(cur_token.str);
-    nextToken();
-
-    params.push_back({name, type});
-    if (cur_token.type == TokenType::Comma) {
-      nextToken();
-    } else {
-      break;
-    }
-  }
-  takeToken(TokenType::ParenR);
-
-  FuncType func_type;
-  if (cur_token.type == TokenType::Ident) {
-    func_type.results.push_back(std::move(cur_token.str));
-    nextToken();
-  }
-  func_type.args = std::move(params);
+  FuncType func_type = parse_func_type();
 
   BlockStmt *body = blockStmt();
 
@@ -99,13 +75,69 @@ FuncDecl *Parser::funcDecl() {
   return func;
 }
 
+FuncType Parser::parse_func_type() {
+  FuncType func_type;
+
+  func_type.fields = parse_params();
+
+  Ident ret;
+  ret.name = cur_token.str;
+  func_type.results.push_back(std::move(ret));
+
+  next_token();
+
+  return func_type;
+}
+
+std::vector<Field> Parser::parse_params() {
+  std::vector<Field> fields;
+
+  if (peek_token_is(TokenType::ParenR)) {
+    next_token();
+    return fields;
+  }
+
+  next_token();
+
+  fields.push_back(parse_param());
+
+  while (peek_token_is(TokenType::Comma)) {
+    next_token();
+    next_token();
+    fields.push_back(parse_param());
+  }
+
+  if (expect_peek(TokenType::ParenR)) {
+    return {};
+  }
+
+  return fields;
+}
+
+Field Parser::parse_param() {
+  Field field;
+  field.name.name = cur_token.str;
+  field.type.name = peek_token.str;
+  next_token();
+  return field;
+}
+
 BlockStmt *Parser::blockStmt() {
   std::vector<Stmt *> stmts;
-  takeToken(TokenType::BraceL);
-  while (cur_token.type != TokenType::BraceR) {
-    stmts.emplace_back(statement());
+  if (!expect_peek(TokenType::BraceL)) {
+    return nullptr;
   }
-  takeToken(TokenType::BraceR);
+
+  next_token();
+
+  while (!cur_token_is(TokenType::BraceR) && !cur_token_is(TokenType::TEOF)) {
+    Stmt *stmt = statement();
+    if (stmt != nullptr) {
+      stmts.push_back(stmt);
+    }
+    next_token();
+  }
+
   BlockStmt *block = new BlockStmt();
   block->stmts = std::move(stmts);
   return block;
@@ -113,10 +145,10 @@ BlockStmt *Parser::blockStmt() {
 
 Stmt *Parser::statement() {
   switch (cur_token.type) {
-  case TokenType::If:
-    return ifStmt();
-  case TokenType::Let:
-    return letStmt();
+  // case TokenType::If:
+  //   return ifStmt();
+  // case TokenType::Let:
+  //   return letStmt();
   case TokenType::Return:
     return returnStmt();
   default:;
@@ -124,25 +156,27 @@ Stmt *Parser::statement() {
   }
 }
 
-LetStmt *Parser::letStmt() {
-  takeToken(TokenType::Let);
-  if (cur_token.type != TokenType::Ident) {
-    throw "err";
-  }
-  std::string ident = std::move(cur_token.str);
-  nextToken();
-  takeToken(TokenType::Assign);
-  Expr *expr_ = expr();
+// LetStmt *Parser::letStmt() {
+//   takeToken(TokenType::Let);
+//   if (cur_token.type != TokenType::Ident) {
+//     throw "err";
+//   }
+//   std::string ident = std::move(cur_token.str);
+//   next_token();
+//   takeToken(TokenType::Assign);
+//   Expr *expr_ = expr();
 
-  LetStmt *stmt = new LetStmt();
-  stmt->ident = std::move(ident);
-  stmt->expr = expr_;
-  return stmt;
-}
+//   LetStmt *stmt = new LetStmt();
+//   stmt->ident = std::move(ident);
+//   stmt->expr = expr_;
+//   return stmt;
+// }
 
 ReturnStmt *Parser::returnStmt() {
-  takeToken(TokenType::Return);
-  Expr *result = expr();
+  next_token();
+
+  Expr *result = expr(0);
+
   ReturnStmt *stmt = new ReturnStmt();
   stmt->results.push_back(result);
   return stmt;
@@ -162,18 +196,18 @@ ReturnStmt *Parser::returnStmt() {
 //   return;
 // }
 
-IfStmt *Parser::ifStmt() {
-  takeToken(TokenType::If);
+// IfStmt *Parser::ifStmt() {
+//   takeToken(TokenType::If);
 
-  auto *cond = expr();
-  auto *then_block = blockStmt();
+//   auto *cond = expr();
+//   auto *then_block = blockStmt();
 
-  IfStmt *stmt = new IfStmt();
-  stmt->cond = cond;
-  stmt->then_block = then_block;
-  stmt->else_block = nullptr;
-  return stmt;
-}
+//   IfStmt *stmt = new IfStmt();
+//   stmt->cond = cond;
+//   stmt->then_block = then_block;
+//   stmt->else_block = nullptr;
+//   return stmt;
+// }
 
 // void Parser::statementWhile() {
 //   takeToken(TokenType::While);
@@ -236,62 +270,91 @@ IfStmt *Parser::ifStmt() {
 //   }
 // }
 
-Expr *Parser::expr() { return binaryExpr(); }
+Expr *Parser::expr(int precedence) {
+  auto prefix = prefix_parse_functions[cur_token.type];
+  // if prefix == nil {
+  // 	p.noPrefixParseFnError(p.curToken.Type)
+  // 	return nil
+  // }
+  Expr *leftExp = prefix(this);
 
-Expr *Parser::binaryExpr() {
-  Expr *lhs = factor();
-  while (cur_token.isOP()) {
-    auto op = cur_token.type;
-    nextToken();
-    Expr *rhs = binaryExpr();
-    BinaryExpr *new_lhs = new BinaryExpr();
-    new_lhs->lhs = lhs;
-    new_lhs->op = op;
-    new_lhs->rhs = rhs;
-    lhs = (Expr *)new_lhs;
+  while (peek_token_is(TokenType::Semicolon) &&
+         precedence < peek_precedence()) {
+    auto infix = infix_parse_functions[peek_token.type];
+    // if infix == nil {
+    // 	return leftExp
+    // }
+
+    next_token();
+
+    leftExp = infix(this, leftExp);
   }
-  return lhs;
+
+  return leftExp;
 }
 
-Expr *Parser::factor() {
-  Expr *ret = parseOperand();
+// Expr *Parser::binaryExpr() {
+//   Expr *lhs = factor();
+//   while (cur_token.isOP()) {
+//     auto op = cur_token.type;
+//     next_token();
+//     Expr *rhs = binaryExpr();
+//     BinaryExpr *new_lhs = new BinaryExpr();
+//     new_lhs->lhs = lhs;
+//     new_lhs->op = op;
+//     new_lhs->rhs = rhs;
+//     lhs = (Expr *)new_lhs;
+//   }
+//   return lhs;
+// }
 
-  if (cur_token.type == TokenType::ParenL) {
-    return parseCallExpr(ret);
-  }
-  return ret;
+// Expr *Parser::factor() {
+//   Expr *ret = parseOperand();
+
+//   if (cur_token.type == TokenType::ParenL) {
+//     return parseCallExpr(ret);
+//   }
+//   return ret;
+// }
+
+// Expr *Parser::parseOperand() {
+//   if (cur_token.type == TokenType::Integer) {
+//     BasicLit *lit = new BasicLit();
+//     lit->kind = cur_token.type;
+//     lit->value = std::move(cur_token.str);
+//     next_token();
+//     return lit;
+//   } else if (cur_token.type == TokenType::Ident) {
+//     Ident *ident = new Ident();
+//     ident->name = std::move(cur_token.str);
+//     next_token();
+//     return ident;
+//   }
+//   return nullptr;
+// }
+
+Expr *Parser::parseIntegerLiteral() {
+  BasicLit *lit = new BasicLit();
+  lit->kind = cur_token.type;
+  lit->value = std::move(cur_token.str);
+  next_token();
+  return lit;
 }
 
-Expr *Parser::parseOperand() {
-  if (cur_token.type == TokenType::Integer) {
-    BasicLit *lit = new BasicLit();
-    lit->kind = cur_token.type;
-    lit->value = std::move(cur_token.str);
-    nextToken();
-    return lit;
-  } else if (cur_token.type == TokenType::Ident) {
-    Ident *ident = new Ident();
-    ident->name = std::move(cur_token.str);
-    nextToken();
-    return ident;
-  }
-  return nullptr;
-}
-
-CallExpr *Parser::parseCallExpr(Expr *callee) {
-  std::vector<Expr *> args;
-  takeToken(TokenType::ParenL);
-  while (cur_token.type != TokenType::ParenR) {
-    args.push_back(expr());
-    if (cur_token.type == TokenType::Comma) {
-      nextToken();
-    } else {
-      break;
-    }
-  }
-  takeToken(TokenType::ParenR);
-  CallExpr *callExpr = new CallExpr();
-  callExpr->func = callee;
-  callExpr->args = std::move(args);
-  return callExpr;
-}
+// CallExpr *Parser::parseCallExpr(Expr *callee) {
+//   std::vector<Expr *> args;
+//   takeToken(TokenType::ParenL);
+//   while (cur_token.type != TokenType::ParenR) {
+//     args.push_back(expr());
+//     if (cur_token.type == TokenType::Comma) {
+//       next_token();
+//     } else {
+//       break;
+//     }
+//   }
+//   takeToken(TokenType::ParenR);
+//   CallExpr *callExpr = new CallExpr();
+//   callExpr->func = callee;
+//   callExpr->args = std::move(args);
+//   return callExpr;
+// }

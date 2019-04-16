@@ -11,11 +11,13 @@ namespace yslang {
 class CodeGen {
 public:
   CodeGen();
-  void generate(File *file);
-  llvm::Module *getModule() { return module; }
+  void generate(Program *file);
+  llvm::Module *getModule() {
+    return module;
+  }
 
 private:
-  void visitFile(File *file);
+  void visitFile(Program *file);
   void visitDecl(Decl *decl);
   void visitFuncDecl(FuncDecl *func);
   void visitConstDecl(ConstDecl *constDecl);

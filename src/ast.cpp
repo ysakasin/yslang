@@ -90,20 +90,20 @@ json IfStmt::toJson() const {
 
 json FuncType::toJson() const {
   json j;
-  j["results"] = json(results);
+  // j["results"] = json(results);
   j["args"] = json::array();
-  for (const auto &arg : args) {
-    j["args"].push_back({{"name", arg.name}, {"type", arg.type}});
-  }
+  // for (const auto &arg : fields) {
+  //   j["args"].push_back({ { "name", arg.name }, { "type", arg.type } });
+  // }
   return j;
 }
 
 json FuncDecl::toJson() const {
   json j;
-  j["#ast type"] = "FuncDecl";
+  j["ast type"] = "FuncDecl";
   j["name"] = name;
-  j["body"] = body->toJson();
   j["type"] = func_type.toJson();
+  j["body"] = body->toJson();
   return j;
 }
 
@@ -115,7 +115,7 @@ json ConstDecl::toJson() const {
   return j;
 }
 
-json File::toJson() const {
+json Program::toJson() const {
   json j;
   j["#ast type"] = "File";
   j["path"] = path;

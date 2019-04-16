@@ -119,18 +119,19 @@ public:
   BlockStmt *else_block;
 };
 
+class Field {
+public:
+  Ident name;
+  Ident type;
+};
+
 class FuncType {
 public:
   nlohmann::json toJson() const;
 
 public:
-  class Arg {
-  public:
-    std::string name;
-    std::string type;
-  };
-  std::vector<std::string> results;
-  std::vector<Arg> args;
+  std::vector<Ident> results;
+  std::vector<Field> fields;
 };
 
 class FuncDecl : public Decl {
@@ -154,7 +155,7 @@ public:
   Expr *expr;
 };
 
-class File : public Node {
+class Program : public Node {
 public:
   nlohmann::json toJson() const;
 

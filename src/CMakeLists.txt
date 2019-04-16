@@ -1,6 +1,6 @@
 set(yslang_src
   ast.cpp
-  codegen.cpp
+  # codegen.cpp
   lexer.cpp
   parser.cpp
   token.cpp

@@ -21,26 +21,40 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  std::string path = cmd.rest()[0];
+
+  std::ifstream ifs(path);
+  if (ifs.fail()) {
+    std::cerr << "Can not open " << path << std::endl;
+  }
+
+  std::istreambuf_iterator<char> it(ifs);
+  std::istreambuf_iterator<char> last;
+  std::string input(it, last);
+
   if (cmd.exist("tokens")) {
-    yslang::Lexer lexer(cmd.rest()[0]);
-    // lexer.print_all();
+    yslang::Lexer lexer(input);
+    for (yslang::Token t = lexer.next(); t.type != yslang::TokenType::TEOF;
+         t = lexer.next()) {
+      std::cout << t << std::endl;
+    }
   }
 
-  yslang::Parser parser(cmd.rest()[0]);
-  yslang::File *file = parser.parse();
+  yslang::Parser parser(input);
+  yslang::Program program = parser.parse();
 
-  if (cmd.exist("ast")) {
-    parser.print();
-  }
+  // if (cmd.exist("ast")) {
+  std::cout << program.toJson() << std::endl;
+  // }
 
-  yslang::CodeGen codegen;
-  codegen.generate(file);
-  auto module = codegen.getModule();
+  // yslang::CodeGen codegen;
+  // codegen.generate(file);
+  // auto module = codegen.getModule();
 
-  std::error_code error_info;
-  llvm::raw_fd_ostream raw_stream("out.ll", error_info,
-                                  llvm::sys::fs::OpenFlags::F_None);
-  module->print(raw_stream, nullptr);
+  // std::error_code error_info;
+  // llvm::raw_fd_ostream raw_stream("out.ll", error_info,
+  //                                 llvm::sys::fs::OpenFlags::F_None);
+  // module->print(raw_stream, nullptr);
 
   return 0;
 }

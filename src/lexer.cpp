@@ -133,7 +133,9 @@ Token Lexer::read_number() {
   return Token(TokenType::Integer, input.substr(pos, position - pos));
 }
 
-bool is_ident_piece(char c) { return isalnum(c) || c == '_'; }
+bool is_ident_piece(char c) {
+  return isalnum(c) || c == '_';
+}
 
 Token Lexer::read_ident() {
   size_t pos = position;
