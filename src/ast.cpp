@@ -2,7 +2,6 @@
 #include <sstream>
 
 using namespace yslang;
-using json = nlohmann::json;
 
 json BinaryExpr::toJson() const {
   json j;
@@ -10,23 +9,23 @@ json BinaryExpr::toJson() const {
 
   ss << op;
 
-  j["#ast type"] = "Ident";
-  j["0 lhs"] = lhs->toJson();
-  j["1 op"] = ss.str();
-  j["2 rhs"] = rhs->toJson();
+  j["kind"] = "Ident";
+  j["lhs"] = lhs->toJson();
+  j["op"] = ss.str();
+  j["rhs"] = rhs->toJson();
   return j;
 }
 
 json Ident::toJson() const {
   json j;
-  j["#ast type"] = "Ident";
+  j["kind"] = "Ident";
   j["name"] = name;
   return j;
 }
 
 json CallExpr::toJson() const {
   json j;
-  j["#ast type"] = "CallExpr";
+  j["kind"] = "CallExpr";
   j["func"] = func->toJson();
   j["args"] = json::array();
   for (const Expr *arg : args) {
@@ -41,7 +40,7 @@ json BasicLit::toJson() const {
 
   ss << kind;
 
-  j["#ast type"] = "BasicLit";
+  j["kind"] = "BasicLit";
   j["kind"] = ss.str();
   j["value"] = value;
   return j;
@@ -49,7 +48,7 @@ json BasicLit::toJson() const {
 
 json BlockStmt::toJson() const {
   json j;
-  j["#ast type"] = "BlockStmt";
+  j["kind"] = "BlockStmt";
   j["stmts"] = json::array();
   for (const Stmt *stmt : stmts) {
     j["stmts"].push_back(stmt->toJson());
@@ -59,7 +58,7 @@ json BlockStmt::toJson() const {
 
 json LetStmt::toJson() const {
   json j;
-  j["#ast type"] = "LetStmt";
+  j["kind"] = "LetStmt";
   j["ident"] = ident;
   j["expr"] = expr->toJson();
   return j;
@@ -67,8 +66,8 @@ json LetStmt::toJson() const {
 
 json ReturnStmt::toJson() const {
   json j;
-  j["#ast type"] = "ReturnStmt";
-  j["results"] = json::array();
+  j["kind"] = "ReturnStmt";
+  j["results"].init_array();
   for (const Expr *expr : results) {
     j["results"].push_back(expr->toJson());
   }
@@ -77,7 +76,7 @@ json ReturnStmt::toJson() const {
 
 json IfStmt::toJson() const {
   json j;
-  j["#ast type"] = "IfStmt";
+  j["kind"] = "IfStmt";
   j["cond"] = cond->toJson();
   j["then_block"] = then_block->toJson();
   if (else_block != nullptr) {
@@ -92,15 +91,18 @@ json FuncType::toJson() const {
   json j;
   // j["results"] = json(results);
   j["args"] = json::array();
-  // for (const auto &arg : fields) {
-  //   j["args"].push_back({ { "name", arg.name }, { "type", arg.type } });
-  // }
+  for (const auto &arg : fields) {
+    json field;
+    field["name"] = arg.name.name;
+    field["type"] = arg.type.name;
+    j["args"].push_back(field);
+  }
   return j;
 }
 
 json FuncDecl::toJson() const {
   json j;
-  j["ast type"] = "FuncDecl";
+  j["kind"] = "FuncDecl";
   j["name"] = name;
   j["type"] = func_type.toJson();
   j["body"] = body->toJson();
@@ -109,7 +111,7 @@ json FuncDecl::toJson() const {
 
 json ConstDecl::toJson() const {
   json j;
-  j["#ast type"] = "ConstDecl";
+  j["kind"] = "ConstDecl";
   j["name"] = name;
   j["expr"] = expr->toJson();
   return j;
@@ -117,7 +119,7 @@ json ConstDecl::toJson() const {
 
 json Program::toJson() const {
   json j;
-  j["#ast type"] = "File";
+  j["kind"] = "Program";
   j["path"] = path;
   j["decls"] = json::array();
   for (const Decl *decl : decls) {

@@ -70,7 +70,7 @@ FuncDecl *Parser::parse_func_decl() {
 
   FuncDecl *func = new FuncDecl();
   func->name = std::move(func_name);
-  func->func_type = std::move(func_type);
+  func->func_type = func_type;
   func->body = body;
   return func;
 }
@@ -107,7 +107,7 @@ std::vector<Field> Parser::parse_params() {
     fields.push_back(parse_param());
   }
 
-  if (expect_peek(TokenType::ParenR)) {
+  if (!expect_peek(TokenType::ParenR)) {
     return {};
   }
 

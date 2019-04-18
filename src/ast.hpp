@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "../third_party/json.hpp"
+#include "./json.hpp"
 #include "./token.hpp"
 
 namespace yslang {
 class Node {
 public:
-  virtual nlohmann::json toJson() const = 0;
+  virtual json toJson() const = 0;
 };
 
 class Decl : public Node {
@@ -43,7 +43,7 @@ public:
 class BinaryExpr : public Expr {
 public:
   BinaryExpr() : Expr(Expr::Type::BinaryExpr) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   Expr *lhs;
@@ -54,7 +54,13 @@ public:
 class Ident : public Expr {
 public:
   Ident() : Expr(Expr::Type::Ident) {}
-  nlohmann::json toJson() const;
+  Ident(const Ident &ident) : Expr(Expr::Type::Ident), name(ident.name) {}
+
+  Ident &operator=(const Ident &ident) {
+    name = ident.name;
+    return *this;
+  }
+  json toJson() const;
 
 public:
   std::string name;
@@ -63,7 +69,7 @@ public:
 class CallExpr : public Expr {
 public:
   CallExpr() : Expr(Expr::Type::CallExpr) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   Expr *func;
@@ -73,7 +79,7 @@ public:
 class BasicLit : public Expr {
 public:
   BasicLit() : Expr(Expr::Type::BasicLit) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   TokenType kind;
@@ -83,7 +89,7 @@ public:
 class BlockStmt : public Stmt {
 public:
   BlockStmt() : Stmt(Stmt::Type::Block) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::vector<Stmt *> stmts;
@@ -92,7 +98,7 @@ public:
 class LetStmt : public Stmt {
 public:
   LetStmt() : Stmt(Stmt::Type::Let) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::string ident;
@@ -102,7 +108,7 @@ public:
 class ReturnStmt : public Stmt {
 public:
   ReturnStmt() : Stmt(Stmt::Type::Return) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::vector<Expr *> results;
@@ -111,7 +117,7 @@ public:
 class IfStmt : public Stmt {
 public:
   IfStmt() : Stmt(Stmt::Type::If) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   Expr *cond;
@@ -127,7 +133,7 @@ public:
 
 class FuncType {
 public:
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::vector<Ident> results;
@@ -137,7 +143,7 @@ public:
 class FuncDecl : public Decl {
 public:
   FuncDecl() : Decl(Decl::Type::Func) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::string name;
@@ -148,7 +154,7 @@ public:
 class ConstDecl : public Decl {
 public:
   ConstDecl() : Decl(Decl::Type::Const) {}
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::string name;
@@ -157,7 +163,7 @@ public:
 
 class Program : public Node {
 public:
-  nlohmann::json toJson() const;
+  json toJson() const;
 
 public:
   std::string path;

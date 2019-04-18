@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   yslang::Program program = parser.parse();
 
   // if (cmd.exist("ast")) {
-  std::cout << program.toJson() << std::endl;
+  std::cout << program.toJson().to_string() << std::endl;
   // }
 
   // yslang::CodeGen codegen;
