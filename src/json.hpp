@@ -274,7 +274,7 @@ private:
 
     int i;
     for (i = 0; i < v.size() - 1; i++) {
-      ss << indent(depth + 1) << v[i] << ", " << std::endl;
+      ss << indent(depth + 1) << v[i] << "," << std::endl;
     }
     ss << indent(depth + 1) << v[i] << std::endl;
     ss << indent(depth);
