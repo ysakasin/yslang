@@ -134,10 +134,14 @@ public:
   }
 
   std::string to_string() const {
+    return to_string(0);
+  }
+
+  std::string to_string(int depth) const {
     if (kind == Kind::Array) {
-      return dump_array();
+      return dump_array(depth);
     } else if (kind == Kind::Object) {
-      return dump_object();
+      return dump_object(depth);
     } else if (kind == Kind::String) {
       return dump_string();
     } else {
@@ -185,29 +189,33 @@ private:
     return std::to_string(element.number);
   }
 
-  std::string dump_array() const {
+  std::string dump_array(int depth) const {
     std::vector<std::string> v;
     v.reserve(element.array->size());
 
     for (const auto &item : *element.array) {
-      v.emplace_back(item.to_string());
+      v.emplace_back(item.to_string(depth + 1));
     }
 
     std::stringstream ss;
-    return "[" + join(v) + "]";
+    ss << "[" << join(depth, v) << "]";
+
+    return ss.str();
   }
 
-  std::string dump_object() const {
+  std::string dump_object(int depth) const {
     std::vector<std::string> v;
     v.reserve(element.object->size());
 
     for (const auto &item : *element.object) {
       v.emplace_back(escapeJsonString(item.first) + ": " +
-                     item.second.to_string());
+                     item.second.to_string(depth + 1));
     }
 
     std::stringstream ss;
-    return "{" + join(v) + "}";
+    ss << "{" << join(depth, v) << "}";
+
+    return ss.str();
   }
 
   std::string dump_string() const {
@@ -256,19 +264,26 @@ private:
     return ss.str();
   }
 
-  std::string join(std::vector<std::string> v) const {
+  std::string join(int depth, std::vector<std::string> v) const {
     if (v.size() == 0) {
       return "";
     }
 
     std::stringstream ss;
-    ss << v[0];
+    ss << std::endl;
 
-    for (int i = 1; i < v.size(); i++) {
-      ss << ", " << v[i];
+    int i;
+    for (i = 0; i < v.size() - 1; i++) {
+      ss << indent(depth + 1) << v[i] << ", " << std::endl;
     }
+    ss << indent(depth + 1) << v[i] << std::endl;
+    ss << indent(depth);
 
     return ss.str();
+  }
+
+  std::string indent(int depth) const {
+    return std::string(depth * 2, ' ');
   }
 
 private:
