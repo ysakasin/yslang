@@ -24,7 +24,7 @@ public:
 
 class Stmt : public Node {
 public:
-  enum class Type { Block, Return, Let, If };
+  enum class Type { Block, Return, Let, If, Expr };
   Stmt(Type type) : type(type){};
 
 public:
@@ -84,6 +84,15 @@ public:
 public:
   TokenType kind;
   std::string value;
+};
+
+class ExprStmt : public Stmt {
+public:
+  ExprStmt() : Stmt(Stmt::Type::Expr) {}
+  json toJson() const;
+
+public:
+  Expr *expr;
 };
 
 class BlockStmt : public Stmt {

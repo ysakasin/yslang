@@ -43,6 +43,13 @@ int main(int argc, char *argv[]) {
   yslang::Parser parser(input);
   yslang::Program program = parser.parse();
 
+  if (parser.has_error()) {
+    for (const auto &msg : parser.error_messages) {
+      std::cerr << msg << std::endl;
+    }
+    return 1;
+  }
+
   // if (cmd.exist("ast")) {
   std::cout << program.toJson().to_string() << std::endl;
   // }

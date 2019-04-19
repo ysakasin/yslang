@@ -15,6 +15,22 @@ public:
 
   Program parse();
 
+  bool has_error() {
+    return error_messages.size() != 0;
+  }
+
+private:
+  enum Precedence {
+    LOWEST = 0,
+    EQUALS,      // ==
+    LESSGREATER, // < or >
+    SUM,         // + or -
+    PRODUCT,     // * or /
+    PREFIX,      // !X or -Y
+    CALL,        // myFunction(X)
+    INDEX,       // array[index]
+  };
+
 private:
   Decl *parse_decl();
   FuncDecl *parse_func_decl();
@@ -28,8 +44,9 @@ private:
   ReturnStmt *returnStmt();
   LetStmt *letStmt();
   IfStmt *ifStmt();
+  ExprStmt *expr_stmt();
 
-  Expr *expr(int precedence);
+  Expr *parse_expression(Precedence precedence);
   Expr *binaryExpr();
   Expr *term();
   Expr *factor();
@@ -38,6 +55,9 @@ private:
   CallExpr *parseCallExpr(Expr *callee);
 
   Expr *parseIntegerLiteral();
+  Expr *parse_identifier();
+
+  Expr *parse_infix_expression(Expr *left);
 
   // llvm::Value *condition();
   // llvm::Value *expression();
@@ -49,6 +69,26 @@ private:
   void next_token() {
     cur_token = std::move(peek_token);
     peek_token = lexer.next();
+  }
+
+  void expect(TokenType type) {
+    if (cur_token.type != type) {
+      std::stringstream ss;
+      ss << "expected next token to be " << type << ", got " << cur_token.type;
+      error_messages.emplace_back(ss.str());
+    }
+
+    next_token();
+  }
+
+  bool expect_cur(TokenType type) {
+    if (cur_token_is(type)) {
+      next_token();
+      return true;
+    } else {
+      // TODO: error msg
+      return false;
+    }
   }
 
   bool expect_peek(TokenType type) {
@@ -69,11 +109,19 @@ private:
     return peek_token.type == type;
   }
 
-  int peek_precedence() {
+  Precedence cur_precedence() {
+    return precedences[cur_token.type];
+  }
+
+  Precedence peek_precedence() {
     return precedences[peek_token.type];
   }
 
   void peek_error(TokenType type) {}
+
+  void append_error(const std::string &message) {
+    error_messages.emplace_back(message);
+  }
 
 private:
   Lexer lexer;
@@ -85,6 +133,9 @@ private:
   using infix_parse = std::function<Expr *(Parser *, Expr *)>;
   std::map<TokenType, prefix_parse> prefix_parse_functions;
   std::map<TokenType, infix_parse> infix_parse_functions;
-  std::map<TokenType, int> precedences;
+  std::map<TokenType, Precedence> precedences;
+
+public:
+  std::vector<std::string> error_messages;
 };
 } // namespace yslang

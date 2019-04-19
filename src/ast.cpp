@@ -127,3 +127,10 @@ json Program::toJson() const {
   }
   return j;
 }
+
+json ExprStmt::toJson() const {
+  json j;
+  j["kind"] = "ExprStmt";
+  j["expr"] = expr->toJson();
+  return j;
+}

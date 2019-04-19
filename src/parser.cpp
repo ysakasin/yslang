@@ -11,6 +11,11 @@ Parser::Parser(const std::string &input) : lexer(input) {
   next_token();
 
   prefix_parse_functions[TokenType::Integer] = &Parser::parseIntegerLiteral;
+  prefix_parse_functions[TokenType::Ident] = &Parser::parse_identifier;
+
+  infix_parse_functions[TokenType::Plus] = &Parser::parse_infix_expression;
+
+  precedences[TokenType::Plus] = Precedence::SUM;
 }
 
 Program Parser::parse() {
@@ -19,7 +24,6 @@ Program Parser::parse() {
   while (cur_token.type != TokenType::TEOF) {
     Decl *decl = parse_decl();
     program.decls.push_back(decl);
-    next_token();
   }
 
   return program;
@@ -57,11 +61,13 @@ Decl *Parser::parse_decl() {
 // }
 
 FuncDecl *Parser::parse_func_decl() {
-  if (!expect_peek(TokenType::Ident)) {
-    error("no Ident at funcDecl()");
+  expect(TokenType::Func);
+
+  std::string func_name = "";
+  if (cur_token_is(TokenType::Ident)) {
+    func_name = std::move(cur_token.str);
   }
 
-  std::string func_name = std::move(cur_token.str);
   next_token();
 
   FuncType func_type = parse_func_type();
@@ -90,53 +96,43 @@ FuncType Parser::parse_func_type() {
 }
 
 std::vector<Field> Parser::parse_params() {
+  expect(TokenType::ParenL);
+
   std::vector<Field> fields;
-
-  if (peek_token_is(TokenType::ParenR)) {
-    next_token();
-    return fields;
-  }
-
-  next_token();
-
-  fields.push_back(parse_param());
-
-  while (peek_token_is(TokenType::Comma)) {
-    next_token();
-    next_token();
+  while (true) {
     fields.push_back(parse_param());
+    if (!cur_token_is(TokenType::Comma)) {
+      break;
+    }
+    next_token();
   }
 
-  if (!expect_peek(TokenType::ParenR)) {
-    return {};
-  }
+  expect(TokenType::ParenR);
 
   return fields;
 }
 
 Field Parser::parse_param() {
   Field field;
+
   field.name.name = cur_token.str;
   field.type.name = peek_token.str;
+
   next_token();
+  next_token();
+
   return field;
 }
 
 BlockStmt *Parser::blockStmt() {
+  expect(TokenType::BraceL);
+
   std::vector<Stmt *> stmts;
-  if (!expect_peek(TokenType::BraceL)) {
-    return nullptr;
-  }
-
-  next_token();
-
   while (!cur_token_is(TokenType::BraceR) && !cur_token_is(TokenType::TEOF)) {
-    Stmt *stmt = statement();
-    if (stmt != nullptr) {
-      stmts.push_back(stmt);
-    }
-    next_token();
+    stmts.push_back(statement());
   }
+
+  expect(TokenType::BraceR);
 
   BlockStmt *block = new BlockStmt();
   block->stmts = std::move(stmts);
@@ -151,8 +147,8 @@ Stmt *Parser::statement() {
   //   return letStmt();
   case TokenType::Return:
     return returnStmt();
-  default:;
-    return nullptr;
+  default:
+    return expr_stmt();
   }
 }
 
@@ -173,12 +169,15 @@ Stmt *Parser::statement() {
 // }
 
 ReturnStmt *Parser::returnStmt() {
-  next_token();
+  expect(TokenType::Return);
 
-  Expr *result = expr(0);
+  Expr *result = parse_expression(LOWEST);
 
   ReturnStmt *stmt = new ReturnStmt();
   stmt->results.push_back(result);
+
+  expect(TokenType::Semicolon);
+
   return stmt;
 }
 
@@ -270,27 +269,34 @@ ReturnStmt *Parser::returnStmt() {
 //   }
 // }
 
-Expr *Parser::expr(int precedence) {
+ExprStmt *Parser::expr_stmt() {
+  ExprStmt *stmt = new ExprStmt();
+
+  stmt->expr = parse_expression(LOWEST);
+
+  expect(TokenType::Semicolon);
+  return stmt;
+}
+
+Expr *Parser::parse_expression(Precedence precedence) {
   auto prefix = prefix_parse_functions[cur_token.type];
-  // if prefix == nil {
-  // 	p.noPrefixParseFnError(p.curToken.Type)
-  // 	return nil
-  // }
-  Expr *leftExp = prefix(this);
 
-  while (peek_token_is(TokenType::Semicolon) &&
-         precedence < peek_precedence()) {
-    auto infix = infix_parse_functions[peek_token.type];
-    // if infix == nil {
-    // 	return leftExp
-    // }
-
-    next_token();
-
-    leftExp = infix(this, leftExp);
+  if (prefix == nullptr) {
+    return nullptr;
   }
 
-  return leftExp;
+  Expr *left_expr = prefix(this);
+
+  while (!cur_token_is(TokenType::Semicolon) && precedence < cur_precedence()) {
+    auto infix = infix_parse_functions[cur_token.type];
+    if (infix == nullptr) {
+      return left_expr;
+    }
+
+    left_expr = infix(this, left_expr);
+  }
+
+  return left_expr;
 }
 
 // Expr *Parser::binaryExpr() {
@@ -337,8 +343,32 @@ Expr *Parser::parseIntegerLiteral() {
   BasicLit *lit = new BasicLit();
   lit->kind = cur_token.type;
   lit->value = std::move(cur_token.str);
+
   next_token();
+
   return lit;
+}
+
+Expr *Parser::parse_identifier() {
+  Ident *ident = new Ident();
+  ident->name = std::move(cur_token.str);
+
+  next_token();
+
+  return ident;
+}
+
+Expr *Parser::parse_infix_expression(Expr *left) {
+  BinaryExpr *expression = new BinaryExpr();
+
+  expression->lhs = left;
+  expression->op = cur_token.type;
+
+  Precedence precedences = cur_precedence();
+  next_token();
+  expression->rhs = parse_expression(precedences);
+
+  return expression;
 }
 
 // CallExpr *Parser::parseCallExpr(Expr *callee) {
