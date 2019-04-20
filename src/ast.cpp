@@ -87,7 +87,7 @@ json IfStmt::toJson() const {
 
 json FuncType::toJson() const {
   json j;
-  // j["results"] = json(results);
+  j["result"] = result.toJson();
   j["args"] = json::array();
   for (const auto &arg : fields) {
     json field;

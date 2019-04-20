@@ -48,11 +48,6 @@ private:
   ExprStmt *expr_stmt();
 
   Expr *parse_expression(Precedence precedence);
-  Expr *binaryExpr();
-  Expr *term();
-  Expr *factor();
-  Expr *factorIdent();
-  Expr *parseOperand();
 
   Expr *parseIntegerLiteral();
   Expr *parse_identifier();
@@ -61,12 +56,6 @@ private:
   Expr *parse_call_expression(Expr *left);
 
   std::vector<Expr *> parse_expression_list();
-
-  // llvm::Value *condition();
-  // llvm::Value *expression();
-  // llvm::Value *term();
-  // llvm::Value *factor();
-  // llvm::Value *factorIdent();
 
 private:
   void next_token() {

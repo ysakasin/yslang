@@ -15,6 +15,10 @@ func hoge(a int) int {
       "kind": "FuncDecl",
       "name": "hoge",
       "type": {
+        "result": {
+          "kind": "Ident",
+          "name": "int"
+        },
         "args": [
           {
             "name": "a",

@@ -145,7 +145,7 @@ public:
   json toJson() const;
 
 public:
-  std::vector<Ident> results;
+  Ident result;
   std::vector<Field> fields;
 };
 

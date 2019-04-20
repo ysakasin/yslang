@@ -109,7 +109,7 @@ FuncType Parser::parse_func_type() {
 
   Ident ret;
   ret.name = cur_token.str;
-  func_type.results.push_back(std::move(ret));
+  func_type.result = std::move(ret);
 
   next_token();
 
@@ -204,20 +204,6 @@ ReturnStmt *Parser::returnStmt() {
   return stmt;
 }
 
-// void Parser::statementAssign() {
-//   const auto &info = ident_table.find(cur_token.ident);
-//   llvm::Value *assignee;
-//   if (info.type == pl0llvm::IdType::Var) {
-//     assignee = info.val;
-//   } else {
-//     error("variable is expected but it is not variable");
-//   }
-//   next();
-//   takeToken(TokenType::Assign);
-//   builder.CreateStore(expression(), assignee);
-//   return;
-// }
-
 IfStmt *Parser::parse_if_statement() {
   expect(TokenType::If);
 
@@ -268,39 +254,6 @@ IfStmt *Parser::parse_if_statement() {
 
 //   curFunc->getBasicBlockList().push_back(merge_block);
 //   builder.SetInsertPoint(merge_block);
-// }
-
-// llvm::CmpInst::Predicate token_to_inst(TokenType type) {
-//   switch (type) {
-//   case TokenType::Equal:
-//     return llvm::CmpInst::Predicate::ICMP_EQ;
-//   case TokenType::NotEqual:
-//     return llvm::CmpInst::Predicate::ICMP_NE;
-//   case TokenType::Less:
-//     return llvm::CmpInst::Predicate::ICMP_SLT;
-//   case TokenType::LessEqual:
-//     return llvm::CmpInst::Predicate::ICMP_SLE;
-//   case TokenType::Greater:
-//     return llvm::CmpInst::Predicate::ICMP_SGT;
-//   case TokenType::GreaterEqual:
-//     return llvm::CmpInst::Predicate::ICMP_SGE;
-//   default:
-//     throw "not support at token to inst";
-//   }
-// }
-
-// llvm::Value *Parser::condition() {
-//   if (cur_token.type == TokenType::Odd) {
-//     next();
-//     auto *lhs = builder.CreateSRem(expression(), builder.getInt64(2));
-//     return builder.CreateICmpEQ(lhs, builder.getInt64(0));
-//   } else {
-//     auto *lhs = expression();
-//     llvm::CmpInst::Predicate inst = token_to_inst(cur_token.type);
-//     next();
-//     auto *rhs = expression();
-//     return builder.CreateICmp(inst, lhs, rhs);
-//   }
 // }
 
 ExprStmt *Parser::expr_stmt() {
