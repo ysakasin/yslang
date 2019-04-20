@@ -29,6 +29,7 @@ private:
     PREFIX,      // !X or -Y
     CALL,        // myFunction(X)
     INDEX,       // array[index]
+    ASSIGN,      // = or :=
   };
 
 private:
@@ -43,7 +44,7 @@ private:
   Stmt *statement();
   ReturnStmt *returnStmt();
   LetStmt *letStmt();
-  IfStmt *ifStmt();
+  IfStmt *parse_if_statement();
   ExprStmt *expr_stmt();
 
   Expr *parse_expression(Precedence precedence);
@@ -52,12 +53,14 @@ private:
   Expr *factor();
   Expr *factorIdent();
   Expr *parseOperand();
-  CallExpr *parseCallExpr(Expr *callee);
 
   Expr *parseIntegerLiteral();
   Expr *parse_identifier();
 
   Expr *parse_infix_expression(Expr *left);
+  Expr *parse_call_expression(Expr *left);
+
+  std::vector<Expr *> parse_expression_list();
 
   // llvm::Value *condition();
   // llvm::Value *expression();

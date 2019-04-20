@@ -14,8 +14,29 @@ Parser::Parser(const std::string &input) : lexer(input) {
   prefix_parse_functions[TokenType::Ident] = &Parser::parse_identifier;
 
   infix_parse_functions[TokenType::Plus] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Minus] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Mul] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Div] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Equal] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::NotEqual] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Greater] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::GreaterEqual] =
+      &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Less] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::LessEqual] = &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::ParenL] = &Parser::parse_call_expression;
 
   precedences[TokenType::Plus] = Precedence::SUM;
+  precedences[TokenType::Minus] = Precedence::SUM;
+  precedences[TokenType::Mul] = Precedence::PRODUCT;
+  precedences[TokenType::Div] = Precedence::PRODUCT;
+  precedences[TokenType::Equal] = Precedence::EQUALS;
+  precedences[TokenType::NotEqual] = Precedence::EQUALS;
+  precedences[TokenType::Greater] = Precedence::EQUALS;
+  precedences[TokenType::GreaterEqual] = Precedence::EQUALS;
+  precedences[TokenType::Less] = Precedence::EQUALS;
+  precedences[TokenType::LessEqual] = Precedence::EQUALS;
+  precedences[TokenType::ParenL] = Precedence::CALL;
 }
 
 Program Parser::parse() {
@@ -99,12 +120,14 @@ std::vector<Field> Parser::parse_params() {
   expect(TokenType::ParenL);
 
   std::vector<Field> fields;
-  while (true) {
-    fields.push_back(parse_param());
-    if (!cur_token_is(TokenType::Comma)) {
-      break;
+  if (!cur_token_is(TokenType::ParenR)) {
+    while (true) {
+      fields.push_back(parse_param());
+      if (!cur_token_is(TokenType::Comma)) {
+        break;
+      }
+      next_token();
     }
-    next_token();
   }
 
   expect(TokenType::ParenR);
@@ -141,8 +164,8 @@ BlockStmt *Parser::blockStmt() {
 
 Stmt *Parser::statement() {
   switch (cur_token.type) {
-  // case TokenType::If:
-  //   return ifStmt();
+  case TokenType::If:
+    return parse_if_statement();
   // case TokenType::Let:
   //   return letStmt();
   case TokenType::Return:
@@ -195,18 +218,29 @@ ReturnStmt *Parser::returnStmt() {
 //   return;
 // }
 
-// IfStmt *Parser::ifStmt() {
-//   takeToken(TokenType::If);
+IfStmt *Parser::parse_if_statement() {
+  expect(TokenType::If);
 
-//   auto *cond = expr();
-//   auto *then_block = blockStmt();
+  auto *cond = parse_expression(LOWEST);
+  auto *then_block = blockStmt();
 
-//   IfStmt *stmt = new IfStmt();
-//   stmt->cond = cond;
-//   stmt->then_block = then_block;
-//   stmt->else_block = nullptr;
-//   return stmt;
-// }
+  Stmt *else_block = nullptr;
+  if (cur_token_is(TokenType::Else)) {
+    expect(TokenType::Else);
+
+    if (cur_token_is(TokenType::If)) {
+      else_block = parse_if_statement();
+    } else {
+      else_block = blockStmt();
+    }
+  }
+
+  IfStmt *stmt = new IfStmt();
+  stmt->cond = cond;
+  stmt->then_block = then_block;
+  stmt->else_block = else_block;
+  return stmt;
+}
 
 // void Parser::statementWhile() {
 //   takeToken(TokenType::While);
@@ -299,46 +333,6 @@ Expr *Parser::parse_expression(Precedence precedence) {
   return left_expr;
 }
 
-// Expr *Parser::binaryExpr() {
-//   Expr *lhs = factor();
-//   while (cur_token.isOP()) {
-//     auto op = cur_token.type;
-//     next_token();
-//     Expr *rhs = binaryExpr();
-//     BinaryExpr *new_lhs = new BinaryExpr();
-//     new_lhs->lhs = lhs;
-//     new_lhs->op = op;
-//     new_lhs->rhs = rhs;
-//     lhs = (Expr *)new_lhs;
-//   }
-//   return lhs;
-// }
-
-// Expr *Parser::factor() {
-//   Expr *ret = parseOperand();
-
-//   if (cur_token.type == TokenType::ParenL) {
-//     return parseCallExpr(ret);
-//   }
-//   return ret;
-// }
-
-// Expr *Parser::parseOperand() {
-//   if (cur_token.type == TokenType::Integer) {
-//     BasicLit *lit = new BasicLit();
-//     lit->kind = cur_token.type;
-//     lit->value = std::move(cur_token.str);
-//     next_token();
-//     return lit;
-//   } else if (cur_token.type == TokenType::Ident) {
-//     Ident *ident = new Ident();
-//     ident->name = std::move(cur_token.str);
-//     next_token();
-//     return ident;
-//   }
-//   return nullptr;
-// }
-
 Expr *Parser::parseIntegerLiteral() {
   BasicLit *lit = new BasicLit();
   lit->kind = cur_token.type;
@@ -371,20 +365,30 @@ Expr *Parser::parse_infix_expression(Expr *left) {
   return expression;
 }
 
-// CallExpr *Parser::parseCallExpr(Expr *callee) {
-//   std::vector<Expr *> args;
-//   takeToken(TokenType::ParenL);
-//   while (cur_token.type != TokenType::ParenR) {
-//     args.push_back(expr());
-//     if (cur_token.type == TokenType::Comma) {
-//       next_token();
-//     } else {
-//       break;
-//     }
-//   }
-//   takeToken(TokenType::ParenR);
-//   CallExpr *callExpr = new CallExpr();
-//   callExpr->func = callee;
-//   callExpr->args = std::move(args);
-//   return callExpr;
-// }
+Expr *Parser::parse_call_expression(Expr *left) {
+  expect(TokenType::ParenL);
+
+  std::vector<Expr *> args;
+  if (!cur_token_is(TokenType::ParenR)) {
+    args = parse_expression_list();
+  }
+
+  expect(TokenType::ParenR);
+
+  CallExpr *expr = new CallExpr;
+  expr->func = left;
+  expr->args = std::move(args);
+  return expr;
+}
+
+std::vector<Expr *> Parser::parse_expression_list() {
+  std::vector<Expr *> list;
+
+  list.emplace_back(parse_expression(LOWEST));
+  while (cur_token_is(TokenType::Comma)) {
+    next_token();
+    list.emplace_back(parse_expression(LOWEST));
+  }
+
+  return list;
+}

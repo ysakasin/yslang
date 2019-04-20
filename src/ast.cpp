@@ -9,7 +9,7 @@ json BinaryExpr::toJson() const {
 
   ss << op;
 
-  j["kind"] = "Ident";
+  j["kind"] = "BinaryExpr";
   j["lhs"] = lhs->toJson();
   j["op"] = ss.str();
   j["rhs"] = rhs->toJson();
@@ -81,8 +81,6 @@ json IfStmt::toJson() const {
   j["then_block"] = then_block->toJson();
   if (else_block != nullptr) {
     j["else_block"] = else_block->toJson();
-  } else {
-    j["else_block"] = "nullptr";
   }
   return j;
 }

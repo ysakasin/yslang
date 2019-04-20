@@ -29,6 +29,8 @@ std::ostream &operator<<(std::ostream &out, const TokenType type) {
     return out << "Func";
   case TokenType::If:
     return out << "If";
+  case TokenType::Else:
+    return out << "Else";
   case TokenType::While:
     return out << "While";
   case TokenType::Return:
@@ -58,6 +60,8 @@ std::ostream &operator<<(std::ostream &out, const TokenType type) {
 
   case TokenType::Assign:
     return out << "Assign";
+  case TokenType::LetAssign:
+    return out << "LetAssign";
   case TokenType::Semicolon:
     return out << "Semicolon";
   case TokenType::Colon:

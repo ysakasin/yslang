@@ -29,7 +29,7 @@ func hoge(a int) int {
             "kind": "ReturnStmt",
             "results": [
               {
-                "kind": "Ident",
+                "kind": "BinaryExpr",
                 "lhs": {
                   "kind": "Integer",
                   "value": "1"

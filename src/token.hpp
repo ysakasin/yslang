@@ -14,6 +14,7 @@ enum class TokenType {
   Let,
   Func,
   If,
+  Else,
   While,
   Return,
 
@@ -29,7 +30,8 @@ enum class TokenType {
   Greater,      // >
   GreaterEqual, // >=
 
-  Assign,    // :=
+  Assign,    // =
+  LetAssign, // :=
   Semicolon, // ;
   Colon,     // :
   Comma,     // ,
@@ -49,7 +51,9 @@ public:
   Token(TokenType type) : type(type) {}
   Token(TokenType type, std::string &&str) : type(type), str(str) {}
 
-  bool isEOF() const { return type == TokenType::TEOF; }
+  bool isEOF() const {
+    return type == TokenType::TEOF;
+  }
   bool isOP() const;
 
 public:

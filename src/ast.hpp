@@ -130,8 +130,8 @@ public:
 
 public:
   Expr *cond;
-  BlockStmt *then_block;
-  BlockStmt *else_block;
+  Stmt *then_block;
+  Stmt *else_block;
 };
 
 class Field {

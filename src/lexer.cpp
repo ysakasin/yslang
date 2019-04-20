@@ -81,7 +81,7 @@ Token Lexer::next() {
   case ':':
     if (peek_char() == '=') {
       read_char();
-      token.type = TokenType::Assign;
+      token.type = TokenType::LetAssign;
     } else {
       token.type = TokenType::Colon;
     }
@@ -172,6 +172,7 @@ void Lexer::init_keywords() {
   keywords["let"] = TokenType::Let;
   keywords["func"] = TokenType::Func;
   keywords["if"] = TokenType::If;
+  keywords["else"] = TokenType::Else;
   keywords["while"] = TokenType::While;
   keywords["return"] = TokenType::Return;
 }
