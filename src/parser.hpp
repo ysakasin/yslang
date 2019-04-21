@@ -50,7 +50,7 @@ private:
   Expr *parse_expression(Precedence precedence);
 
   Expr *parse_integer_literal();
-  Expr *parse_identifier();
+  Ident *parse_identifier();
 
   Expr *parse_infix_expression(Expr *left);
   Expr *parse_call_expression(Expr *left);

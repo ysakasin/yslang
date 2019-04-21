@@ -110,7 +110,7 @@ public:
   json toJson() const;
 
 public:
-  std::string ident;
+  Ident *ident;
   Expr *expr;
 };
 

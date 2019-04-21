@@ -166,8 +166,8 @@ Stmt *Parser::parse_statement() {
   switch (cur_token.type) {
   case TokenType::If:
     return parse_if_statement();
-  // case TokenType::Let:
-  //   return letStmt();
+  case TokenType::Let:
+    return parse_let_stmt();
   case TokenType::Return:
     return parse_return_stmt();
   default:
@@ -175,21 +175,21 @@ Stmt *Parser::parse_statement() {
   }
 }
 
-// LetStmt *Parser::letStmt() {
-//   takeToken(TokenType::Let);
-//   if (cur_token.type != TokenType::Ident) {
-//     throw "err";
-//   }
-//   std::string ident = std::move(cur_token.str);
-//   next_token();
-//   takeToken(TokenType::Assign);
-//   Expr *expr_ = expr();
+LetStmt *Parser::parse_let_stmt() {
+  expect(TokenType::Let);
 
-//   LetStmt *stmt = new LetStmt();
-//   stmt->ident = std::move(ident);
-//   stmt->expr = expr_;
-//   return stmt;
-// }
+  Ident *ident = parse_identifier();
+
+  expect(TokenType::Assign);
+
+  Expr *expr = parse_expression(LOWEST);
+  expect(TokenType::Semicolon);
+
+  LetStmt *stmt = new LetStmt();
+  stmt->ident = ident;
+  stmt->expr = expr;
+  return stmt;
+}
 
 ReturnStmt *Parser::parse_return_stmt() {
   expect(TokenType::Return);
@@ -296,11 +296,16 @@ Expr *Parser::parse_integer_literal() {
   return lit;
 }
 
-Expr *Parser::parse_identifier() {
+Ident *Parser::parse_identifier() {
   Ident *ident = new Ident();
-  ident->name = std::move(cur_token.str);
+  ident->name = "_";
 
-  next_token();
+  if (cur_token_is(TokenType::Ident)) {
+    ident->name = std::move(cur_token.str);
+    next_token();
+  } else {
+    expect(TokenType::Ident); // for error handling
+  }
 
   return ident;
 }

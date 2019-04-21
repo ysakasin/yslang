@@ -59,7 +59,7 @@ json BlockStmt::toJson() const {
 json LetStmt::toJson() const {
   json j;
   j["kind"] = "LetStmt";
-  j["ident"] = ident;
+  j["ident"] = ident->toJson();
   j["expr"] = expr->toJson();
   return j;
 }

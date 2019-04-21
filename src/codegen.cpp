@@ -106,8 +106,8 @@ void CodeGen::visitStmt(Stmt *stmt) {
 
 void CodeGen::visitLetStmt(LetStmt *stmt) {
   auto *val = genExpr(stmt->expr);
-  auto *alloca = builder.CreateAlloca(val->getType(), 0, stmt->ident);
-  local_vals.emplace(stmt->ident, alloca);
+  auto *alloca = builder.CreateAlloca(val->getType(), 0, stmt->ident->name);
+  local_vals.emplace(stmt->ident->name, alloca);
   builder.CreateStore(val, alloca);
 }
 
