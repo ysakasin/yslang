@@ -8,10 +8,12 @@ using namespace yslang;
 CodeGen::CodeGen()
     : context(), module(new llvm::Module("top", context)), builder(context) {}
 
-void CodeGen::generate(File *file) { visitFile(file); }
+void CodeGen::generate(Program *program) {
+  visitProgram(program);
+}
 
-void CodeGen::visitFile(File *file) {
-  for (Decl *decl : file->decls) {
+void CodeGen::visitProgram(Program *program) {
+  for (Decl *decl : program->decls) {
     visitDecl(decl);
   }
 }
@@ -42,14 +44,10 @@ llvm::Type *CodeGen::getTypeByName(const std::string &name) {
 llvm::FunctionType *CodeGen::getFuncType(const FuncType &funcType) {
   std::vector<llvm::Type *> param_types;
   llvm::Type *funcResult;
-  if (funcType.results.size() == 0) {
-    funcResult = builder.getVoidTy();
-  } else {
-    funcResult = getTypeByName(funcType.results[0]);
-  }
+  funcResult = getTypeByName(funcType.result.name);
 
-  for (const auto &arg : funcType.args) {
-    param_types.push_back(getTypeByName(arg.type));
+  for (const auto &fields : funcType.fields) {
+    param_types.push_back(getTypeByName(fields.type.name));
   }
 
   return llvm::FunctionType::get(funcResult, param_types, false);
@@ -63,13 +61,14 @@ void CodeGen::visitFuncDecl(FuncDecl *func_decl) {
   builder.SetInsertPoint(bblock);
 
   llvm::Function::arg_iterator arg_iter = func->arg_begin();
-  for (const auto &arg : func_decl->func_type.args) {
-    arg_iter->setName(arg.name);
+  for (const auto &field : func_decl->func_type.fields) {
+    arg_iter->setName(field.name.name);
     ++arg_iter;
   }
 
   curFunc = func;
   visitBlock(func_decl->body);
+  builder.CreateRet(builder.getInt64(0));
   curFunc = nullptr;
 }
 
@@ -99,6 +98,7 @@ void CodeGen::visitStmt(Stmt *stmt) {
   case Stmt::Type::If:
     visitIfStmt((IfStmt *)stmt);
     break;
+  // case Stmt::Type::ExprStmt:
   default:
     error("visitStmt");
   }
@@ -114,20 +114,31 @@ void CodeGen::visitLetStmt(LetStmt *stmt) {
 void CodeGen::visitReturnStmt(ReturnStmt *stmt) {
   auto *retVal = genExpr(stmt->results[0]);
   builder.CreateRet(retVal);
+
+  auto *dummy = llvm::BasicBlock::Create(context, "dummy");
+  builder.SetInsertPoint(dummy);
 }
 
 void CodeGen::visitIfStmt(IfStmt *stmt) {
   auto *cond = genExpr(stmt->cond);
 
   auto *then_block = llvm::BasicBlock::Create(context, "if.then", curFunc);
+  auto *else_block = llvm::BasicBlock::Create(context, "if.else", curFunc);
   auto *merge_block = llvm::BasicBlock::Create(context, "if.merge");
 
-  builder.CreateCondBr(cond, then_block, merge_block);
+  builder.CreateCondBr(cond, then_block, else_block);
 
   builder.SetInsertPoint(then_block);
-  visitBlock(stmt->then_block);
+  visitBlock(dynamic_cast<BlockStmt *>(stmt->then_block));
   builder.CreateBr(merge_block);
   then_block = builder.GetInsertBlock();
+
+  builder.SetInsertPoint(else_block);
+  if (stmt->else_block != nullptr) {
+    visitBlock(dynamic_cast<BlockStmt *>(stmt->else_block));
+  }
+  builder.CreateBr(merge_block);
+  else_block = builder.GetInsertBlock();
 
   curFunc->getBasicBlockList().push_back(merge_block);
   builder.SetInsertPoint(merge_block);
@@ -202,8 +213,14 @@ llvm::Value *CodeGen::genBinaryExpr(BinaryExpr *expr) {
   switch (expr->op) {
   case TokenType::Plus:
     return builder.CreateAdd(lhs, rhs);
+  case TokenType::Minus:
+    return builder.CreateSub(lhs, rhs);
+  case TokenType::LessEqual:
+    return builder.CreateICmpSLE(lhs, rhs);
   default:
-    error("not support binop");
+    std::stringstream ss;
+    ss << "not support binop " << expr->op;
+    error(ss.str());
     throw;
   }
 }

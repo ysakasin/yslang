@@ -50,18 +50,18 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // if (cmd.exist("ast")) {
-  std::cout << program.toJson().to_string() << std::endl;
-  // }
+  if (cmd.exist("ast")) {
+    std::cout << program.toJson().to_string() << std::endl;
+  }
 
-  // yslang::CodeGen codegen;
-  // codegen.generate(file);
-  // auto module = codegen.getModule();
+  yslang::CodeGen codegen;
+  codegen.generate(&program);
+  auto module = codegen.getModule();
 
-  // std::error_code error_info;
-  // llvm::raw_fd_ostream raw_stream("out.ll", error_info,
-  //                                 llvm::sys::fs::OpenFlags::F_None);
-  // module->print(raw_stream, nullptr);
+  std::error_code error_info;
+  llvm::raw_fd_ostream raw_stream("out.ll", error_info,
+                                  llvm::sys::fs::OpenFlags::F_None);
+  module->print(raw_stream, nullptr);
 
   return 0;
 }
