@@ -10,7 +10,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   next_token();
   next_token();
 
-  prefix_parse_functions[TokenType::Integer] = &Parser::parseIntegerLiteral;
+  prefix_parse_functions[TokenType::Integer] = &Parser::parse_integer_literal;
   prefix_parse_functions[TokenType::Ident] = &Parser::parse_identifier;
 
   infix_parse_functions[TokenType::Plus] = &Parser::parse_infix_expression;
@@ -93,7 +93,7 @@ FuncDecl *Parser::parse_func_decl() {
 
   FuncType func_type = parse_func_type();
 
-  BlockStmt *body = blockStmt();
+  BlockStmt *body = parse_block_stmt();
 
   FuncDecl *func = new FuncDecl();
   func->name = std::move(func_name);
@@ -147,12 +147,12 @@ Field Parser::parse_param() {
   return field;
 }
 
-BlockStmt *Parser::blockStmt() {
+BlockStmt *Parser::parse_block_stmt() {
   expect(TokenType::BraceL);
 
   std::vector<Stmt *> stmts;
   while (!cur_token_is(TokenType::BraceR) && !cur_token_is(TokenType::TEOF)) {
-    stmts.push_back(statement());
+    stmts.push_back(parse_statement());
   }
 
   expect(TokenType::BraceR);
@@ -162,16 +162,16 @@ BlockStmt *Parser::blockStmt() {
   return block;
 }
 
-Stmt *Parser::statement() {
+Stmt *Parser::parse_statement() {
   switch (cur_token.type) {
   case TokenType::If:
     return parse_if_statement();
   // case TokenType::Let:
   //   return letStmt();
   case TokenType::Return:
-    return returnStmt();
+    return parse_return_stmt();
   default:
-    return expr_stmt();
+    return parse_expression_stmt();
   }
 }
 
@@ -191,7 +191,7 @@ Stmt *Parser::statement() {
 //   return stmt;
 // }
 
-ReturnStmt *Parser::returnStmt() {
+ReturnStmt *Parser::parse_return_stmt() {
   expect(TokenType::Return);
 
   Expr *result = parse_expression(LOWEST);
@@ -208,7 +208,7 @@ IfStmt *Parser::parse_if_statement() {
   expect(TokenType::If);
 
   auto *cond = parse_expression(LOWEST);
-  auto *then_block = blockStmt();
+  auto *then_block = parse_block_stmt();
 
   Stmt *else_block = nullptr;
   if (cur_token_is(TokenType::Else)) {
@@ -217,7 +217,7 @@ IfStmt *Parser::parse_if_statement() {
     if (cur_token_is(TokenType::If)) {
       else_block = parse_if_statement();
     } else {
-      else_block = blockStmt();
+      else_block = parse_block_stmt();
     }
   }
 
@@ -256,7 +256,7 @@ IfStmt *Parser::parse_if_statement() {
 //   builder.SetInsertPoint(merge_block);
 // }
 
-ExprStmt *Parser::expr_stmt() {
+ExprStmt *Parser::parse_expression_stmt() {
   ExprStmt *stmt = new ExprStmt();
 
   stmt->expr = parse_expression(LOWEST);
@@ -286,7 +286,7 @@ Expr *Parser::parse_expression(Precedence precedence) {
   return left_expr;
 }
 
-Expr *Parser::parseIntegerLiteral() {
+Expr *Parser::parse_integer_literal() {
   BasicLit *lit = new BasicLit();
   lit->kind = cur_token.type;
   lit->value = std::move(cur_token.str);

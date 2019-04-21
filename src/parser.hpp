@@ -38,18 +38,18 @@ private:
   FuncType parse_func_type();
   std::vector<Field> parse_params();
   Field parse_param();
-  ConstDecl *constDecl();
-  void varDecl(std::vector<std::string> *vars);
-  BlockStmt *blockStmt();
-  Stmt *statement();
-  ReturnStmt *returnStmt();
-  LetStmt *letStmt();
+  ConstDecl *parse_const_decl();
+
+  BlockStmt *parse_block_stmt();
+  Stmt *parse_statement();
+  ReturnStmt *parse_return_stmt();
+  LetStmt *parse_let_stmt();
   IfStmt *parse_if_statement();
-  ExprStmt *expr_stmt();
+  ExprStmt *parse_expression_stmt();
 
   Expr *parse_expression(Precedence precedence);
 
-  Expr *parseIntegerLiteral();
+  Expr *parse_integer_literal();
   Expr *parse_identifier();
 
   Expr *parse_infix_expression(Expr *left);
@@ -73,26 +73,6 @@ private:
     next_token();
   }
 
-  bool expect_cur(TokenType type) {
-    if (cur_token_is(type)) {
-      next_token();
-      return true;
-    } else {
-      // TODO: error msg
-      return false;
-    }
-  }
-
-  bool expect_peek(TokenType type) {
-    if (peek_token_is(type)) {
-      next_token();
-      return true;
-    } else {
-      peek_error(type);
-      return false;
-    }
-  }
-
   bool cur_token_is(TokenType type) {
     return cur_token.type == type;
   }
@@ -107,12 +87,6 @@ private:
 
   Precedence peek_precedence() {
     return precedences[peek_token.type];
-  }
-
-  void peek_error(TokenType type) {}
-
-  void append_error(const std::string &message) {
-    error_messages.emplace_back(message);
   }
 
 private:
