@@ -10,7 +10,8 @@ Parser::Parser(const std::string &input) : lexer(input) {
   next_token();
   next_token();
 
-  prefix_parse_functions[TokenType::Integer] = &Parser::parse_integer_literal;
+  prefix_parse_functions[TokenType::Integer] = &Parser::parse_literal;
+  prefix_parse_functions[TokenType::String] = &Parser::parse_literal;
   prefix_parse_functions[TokenType::Ident] = &Parser::parse_identifier;
 
   infix_parse_functions[TokenType::Plus] = &Parser::parse_infix_expression;
@@ -25,6 +26,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   infix_parse_functions[TokenType::Less] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::LessEqual] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::ParenL] = &Parser::parse_call_expression;
+  infix_parse_functions[TokenType::Dot] = &Parser::parse_ref_expression;
 
   precedences[TokenType::Plus] = Precedence::SUM;
   precedences[TokenType::Minus] = Precedence::SUM;
@@ -37,6 +39,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   precedences[TokenType::Less] = Precedence::EQUALS;
   precedences[TokenType::LessEqual] = Precedence::EQUALS;
   precedences[TokenType::ParenL] = Precedence::CALL;
+  precedences[TokenType::Dot] = Precedence::CALL;
 }
 
 Program Parser::parse() {
@@ -55,8 +58,8 @@ Decl *Parser::parse_decl() {
   switch (cur_token.type) {
   case TokenType::Func:
     return parse_func_decl();
-  // case TokenType::Const:
-  //   return constDecl();
+  case TokenType::Import:
+    return parse_import_decl();
   default:
     ss << "unexpected token at parse(): " << cur_token;
     error(ss.str());
@@ -100,6 +103,15 @@ FuncDecl *Parser::parse_func_decl() {
   func->func_type = func_type;
   func->body = body;
   return func;
+}
+
+ImportDecl *Parser::parse_import_decl() {
+  ImportDecl *decl = new ImportDecl();
+
+  expect(TokenType::Import);
+  decl->package = parse_identifier();
+
+  return decl;
 }
 
 FuncType Parser::parse_func_type() {
@@ -286,7 +298,7 @@ Expr *Parser::parse_expression(Precedence precedence) {
   return left_expr;
 }
 
-Expr *Parser::parse_integer_literal() {
+Expr *Parser::parse_literal() {
   BasicLit *lit = new BasicLit();
   lit->kind = cur_token.type;
   lit->value = std::move(cur_token.str);
@@ -336,6 +348,16 @@ Expr *Parser::parse_call_expression(Expr *left) {
   CallExpr *expr = new CallExpr;
   expr->func = left;
   expr->args = std::move(args);
+  return expr;
+}
+
+Expr *Parser::parse_ref_expression(Expr *left) {
+  RefExpr *expr = new RefExpr();
+  expr->receiver = left;
+
+  expect(TokenType::Dot);
+  expr->ref = parse_identifier();
+
   return expr;
 }
 

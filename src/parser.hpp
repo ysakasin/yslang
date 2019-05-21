@@ -35,6 +35,7 @@ private:
 private:
   Decl *parse_decl();
   FuncDecl *parse_func_decl();
+  ImportDecl *parse_import_decl();
   FuncType parse_func_type();
   std::vector<Field> parse_params();
   Field parse_param();
@@ -49,11 +50,12 @@ private:
 
   Expr *parse_expression(Precedence precedence);
 
-  Expr *parse_integer_literal();
+  Expr *parse_literal();
   Ident *parse_identifier();
 
   Expr *parse_infix_expression(Expr *left);
   Expr *parse_call_expression(Expr *left);
+  Expr *parse_ref_expression(Expr *left);
 
   std::vector<Expr *> parse_expression_list();
 

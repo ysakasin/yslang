@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
          t = lexer.next()) {
       std::cout << t << std::endl;
     }
+    return 0;
   }
 
   yslang::Parser parser(input);
@@ -52,6 +53,7 @@ int main(int argc, char *argv[]) {
 
   if (cmd.exist("ast")) {
     std::cout << program.toJson().to_string() << std::endl;
+    return 0;
   }
 
   yslang::CodeGen codegen;

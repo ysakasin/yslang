@@ -15,7 +15,7 @@ public:
 
 class Decl : public Node {
 public:
-  enum class Type { Const, Func };
+  enum class Type { Const, Func, Import };
   Decl(Type type) : type(type){};
 
 public:
@@ -33,7 +33,7 @@ public:
 
 class Expr : public Node {
 public:
-  enum class Type { BasicLit, Ident, CallExpr, BinaryExpr };
+  enum class Type { BasicLit, Ident, CallExpr, BinaryExpr, RefExpr };
   Expr(Type type) : type(type){};
 
 public:
@@ -74,6 +74,16 @@ public:
 public:
   Expr *func;
   std::vector<Expr *> args;
+};
+
+class RefExpr : public Expr {
+public:
+  RefExpr() : Expr(Expr::Type::RefExpr) {}
+  json toJson() const;
+
+public:
+  Expr *receiver;
+  Ident *ref;
 };
 
 class BasicLit : public Expr {
@@ -168,6 +178,15 @@ public:
 public:
   std::string name;
   Expr *expr;
+};
+
+class ImportDecl : public Decl {
+public:
+  ImportDecl() : Decl(Decl::Type::Import) {}
+  json toJson() const;
+
+public:
+  Ident *package;
 };
 
 class Program : public Node {

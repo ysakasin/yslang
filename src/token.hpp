@@ -17,6 +17,7 @@ enum class TokenType {
   Else,
   While,
   Return,
+  Import,
 
   Plus,  // +
   Minus, // -

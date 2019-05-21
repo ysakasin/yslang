@@ -35,6 +35,8 @@ std::ostream &operator<<(std::ostream &out, const TokenType type) {
     return out << "While";
   case TokenType::Return:
     return out << "Return";
+  case TokenType::Import:
+    return out << "Import";
 
   case TokenType::Plus:
     return out << "Plus";

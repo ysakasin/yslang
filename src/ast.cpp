@@ -34,6 +34,14 @@ json CallExpr::toJson() const {
   return j;
 }
 
+json RefExpr::toJson() const {
+  json j;
+  j["kind"] = "RefExpr";
+  j["receiver"] = receiver->toJson();
+  j["ref"] = ref->toJson();
+  return j;
+}
+
 json BasicLit::toJson() const {
   json j;
   std::stringstream ss;
@@ -112,6 +120,13 @@ json ConstDecl::toJson() const {
   j["kind"] = "ConstDecl";
   j["name"] = name;
   j["expr"] = expr->toJson();
+  return j;
+}
+
+json ImportDecl::toJson() const {
+  json j;
+  j["kind"] = "ImportDecl";
+  j["package"] = package->toJson();
   return j;
 }
 

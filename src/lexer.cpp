@@ -155,11 +155,14 @@ Token Lexer::read_ident() {
 }
 
 Token Lexer::read_string_lit() {
-  size_t pos = position + 1;
+  read_char(); // take '"'
+  size_t pos = position;
 
   while (this->ch != '"') {
     read_char();
   }
+
+  read_char(); // take '"'
 
   return Token(TokenType::String, input.substr(pos, position - pos - 1));
 }
@@ -175,4 +178,5 @@ void Lexer::init_keywords() {
   keywords["else"] = TokenType::Else;
   keywords["while"] = TokenType::While;
   keywords["return"] = TokenType::Return;
+  keywords["import"] = TokenType::Import;
 }
