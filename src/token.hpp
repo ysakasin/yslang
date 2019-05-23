@@ -18,6 +18,8 @@ enum class TokenType {
   While,
   Return,
   Import,
+  Struct,
+  Type,
 
   Plus,  // +
   Minus, // -

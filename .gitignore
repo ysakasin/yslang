@@ -1,3 +1,4 @@
 .vscode/
 build/
 test.ys
+compile_commands.json

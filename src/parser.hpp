@@ -33,14 +33,14 @@ private:
   };
 
 private:
+  // Decl
   Decl *parse_decl();
   FuncDecl *parse_func_decl();
   ImportDecl *parse_import_decl();
-  FuncType parse_func_type();
-  std::vector<Field> parse_params();
-  Field parse_param();
   ConstDecl *parse_const_decl();
+  TypeDecl *parse_type_decl();
 
+  // Stmt
   BlockStmt *parse_block_stmt();
   Stmt *parse_statement();
   ReturnStmt *parse_return_stmt();
@@ -48,6 +48,7 @@ private:
   IfStmt *parse_if_statement();
   ExprStmt *parse_expression_stmt();
 
+  // Expr
   Expr *parse_expression(Precedence precedence);
 
   Expr *parse_literal();
@@ -58,6 +59,15 @@ private:
   Expr *parse_ref_expression(Expr *left);
 
   std::vector<Expr *> parse_expression_list();
+
+  // Type
+  Type *parse_type();
+  IdentType *parse_ident_type();
+  StructType *parse_struct_type();
+  FunctionType *parse_function_type();
+  std::vector<Field> parse_params();
+  std::vector<Field> parse_fields();
+  Field parse_param();
 
 private:
   void next_token() {

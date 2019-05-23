@@ -41,10 +41,10 @@ llvm::Type *CodeGen::getTypeByName(const std::string &name) {
   }
 }
 
-llvm::FunctionType *CodeGen::getFuncType(const FuncType &funcType) {
+llvm::FunctionType *CodeGen::getFuncType(const FunctionType &funcType) {
   std::vector<llvm::Type *> param_types;
   llvm::Type *funcResult;
-  funcResult = getTypeByName(funcType.result.name);
+  funcResult = getTypeByName(funcType.result->name);
 
   for (const auto &fields : funcType.fields) {
     param_types.push_back(getTypeByName(fields.type.name));

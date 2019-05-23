@@ -179,4 +179,6 @@ void Lexer::init_keywords() {
   keywords["while"] = TokenType::While;
   keywords["return"] = TokenType::Return;
   keywords["import"] = TokenType::Import;
+  keywords["struct"] = TokenType::Struct;
+  keywords["type"] = TokenType::Type;
 }

@@ -23,6 +23,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   infix_parse_functions[TokenType::Greater] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::GreaterEqual] =
       &Parser::parse_infix_expression;
+  infix_parse_functions[TokenType::Assign] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::Less] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::LessEqual] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::ParenL] = &Parser::parse_call_expression;
@@ -40,6 +41,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   precedences[TokenType::LessEqual] = Precedence::EQUALS;
   precedences[TokenType::ParenL] = Precedence::CALL;
   precedences[TokenType::Dot] = Precedence::CALL;
+  precedences[TokenType::Assign] = Precedence::ASSIGN;
 }
 
 Program Parser::parse() {
@@ -53,6 +55,10 @@ Program Parser::parse() {
   return program;
 }
 
+// -------------------- //
+// Decl
+// -------------------- //
+
 Decl *Parser::parse_decl() {
   std::stringstream ss;
   switch (cur_token.type) {
@@ -60,29 +66,14 @@ Decl *Parser::parse_decl() {
     return parse_func_decl();
   case TokenType::Import:
     return parse_import_decl();
+  case TokenType::Type:
+    return parse_type_decl();
   default:
     ss << "unexpected token at parse(): " << cur_token;
     error(ss.str());
   }
   return nullptr;
 }
-
-// ConstDecl *Parser::constDecl() {
-//   takeToken(TokenType::Const);
-//   if (cur_token.type != TokenType::Ident) {
-//     error("expected Ident at constDecl()");
-//   }
-//   std::string name = std::move(cur_token.str);
-//   next_token();
-
-//   takeToken(TokenType::Assign);
-//   Expr *body = expr();
-
-//   ConstDecl *decl = new ConstDecl();
-//   decl->name = std::move(name);
-//   decl->expr = body;
-//   return decl;
-// }
 
 FuncDecl *Parser::parse_func_decl() {
   expect(TokenType::Func);
@@ -94,7 +85,7 @@ FuncDecl *Parser::parse_func_decl() {
 
   next_token();
 
-  FuncType func_type = parse_func_type();
+  FunctionType *func_type = parse_function_type();
 
   BlockStmt *body = parse_block_stmt();
 
@@ -114,16 +105,57 @@ ImportDecl *Parser::parse_import_decl() {
   return decl;
 }
 
-FuncType Parser::parse_func_type() {
-  FuncType func_type;
+TypeDecl *Parser::parse_type_decl() {
+  expect(TokenType::Type);
 
-  func_type.fields = parse_params();
+  TypeDecl *type_decl = new TypeDecl();
+  type_decl->name = parse_identifier();
+  type_decl->type = parse_type();
 
-  Ident ret;
-  ret.name = cur_token.str;
-  func_type.result = std::move(ret);
+  return type_decl;
+}
 
-  next_token();
+// -------------------- //
+// Type
+// -------------------- //
+
+Type *Parser::parse_type() {
+  std::stringstream ss;
+  switch (cur_token.type) {
+  case TokenType::Ident:
+    return parse_ident_type();
+  case TokenType::Struct:
+    return parse_struct_type();
+  case TokenType::ParenL:
+    return parse_function_type();
+  default:
+    ss << "unexpected type token at parse(): " << cur_token;
+    error(ss.str());
+    return nullptr;
+  }
+}
+
+IdentType *Parser::parse_ident_type() {
+  IdentType *ident_type = new IdentType();
+
+  ident_type->name = parse_identifier();
+
+  return ident_type;
+}
+
+StructType *Parser::parse_struct_type() {
+  expect(TokenType::Struct);
+
+  StructType *struct_type = new StructType();
+  struct_type->fields = parse_fields();
+
+  return struct_type;
+}
+
+FunctionType *Parser::parse_function_type() {
+  FunctionType *func_type = new FunctionType();
+  func_type->fields = parse_params();
+  func_type->result = parse_type();
 
   return func_type;
 }
@@ -147,17 +179,32 @@ std::vector<Field> Parser::parse_params() {
   return fields;
 }
 
+std::vector<Field> Parser::parse_fields() {
+  expect(TokenType::BraceL);
+
+  std::vector<Field> fields;
+  while (!cur_token_is(TokenType::BraceR)) {
+    fields.push_back(parse_param());
+    expect(TokenType::Semicolon);
+  }
+
+  expect(TokenType::BraceR);
+
+  return fields;
+}
+
 Field Parser::parse_param() {
   Field field;
 
-  field.name.name = cur_token.str;
-  field.type.name = peek_token.str;
-
-  next_token();
-  next_token();
+  field.name = parse_identifier();
+  field.type = parse_type();
 
   return field;
 }
+
+// -------------------- //
+// Stmt
+// -------------------- //
 
 BlockStmt *Parser::parse_block_stmt() {
   expect(TokenType::BraceL);
@@ -190,16 +237,17 @@ Stmt *Parser::parse_statement() {
 LetStmt *Parser::parse_let_stmt() {
   expect(TokenType::Let);
 
-  Ident *ident = parse_identifier();
+  LetStmt *stmt = new LetStmt();
+  stmt->ident = parse_identifier();
+  stmt->type = parse_type();
+  stmt->expr = nullptr;
 
-  expect(TokenType::Assign);
+  if (cur_token_is(TokenType::Assign)) {
+    stmt->expr = parse_expression(LOWEST);
+  }
 
-  Expr *expr = parse_expression(LOWEST);
   expect(TokenType::Semicolon);
 
-  LetStmt *stmt = new LetStmt();
-  stmt->ident = ident;
-  stmt->expr = expr;
   return stmt;
 }
 

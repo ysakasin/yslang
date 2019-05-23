@@ -33,7 +33,7 @@ private:
   llvm::Value *genCallExpr(CallExpr *lit);
   llvm::Value *genBinaryExpr(BinaryExpr *expr);
 
-  llvm::FunctionType *getFuncType(const FuncType &type);
+  llvm::FunctionType *getFuncType(const FunctionType &type);
   llvm::Type *getTypeByName(const std::string &name);
 
 private:

@@ -15,20 +15,20 @@ public:
 
 class Decl : public Node {
 public:
-  enum class Type { Const, Func, Import };
-  Decl(Type type) : type(type){};
+  enum class Kind { Const, Func, Import, Type };
+  Decl(Kind type) : type(type){};
 
 public:
-  const Type type;
+  const Kind type;
 };
 
 class Stmt : public Node {
 public:
-  enum class Type { Block, Return, Let, If, Expr };
-  Stmt(Type type) : type(type){};
+  enum class Kind { Block, Return, Let, If, Expr };
+  Stmt(Kind kind) : kind(kind){};
 
 public:
-  const Type type;
+  const Kind kind;
 };
 
 class Expr : public Node {
@@ -40,6 +40,27 @@ public:
   const Type type;
 };
 
+class Type : public Node {
+public:
+  enum class Kind { Ident, Struct, Function };
+  Type(Kind kind) : kind(kind){};
+
+public:
+  const Kind kind;
+};
+
+class Program : public Node {
+public:
+  json toJson() const;
+
+public:
+  std::string path;
+  std::vector<Decl *> decls;
+};
+
+// -------------------- //
+// Expr
+// -------------------- //
 class BinaryExpr : public Expr {
 public:
   BinaryExpr() : Expr(Expr::Type::BinaryExpr) {}
@@ -96,9 +117,54 @@ public:
   std::string value;
 };
 
+// -------------------- //
+// Type
+// -------------------- //
+
+class Field {
+public:
+  json toJson() const;
+
+public:
+  Ident *name;
+  Type *type;
+};
+
+class IdentType : public Type {
+public:
+  IdentType() : Type(Type::Kind::Ident) {}
+  json toJson() const;
+
+public:
+  Ident *name;
+};
+
+class StructType : public Type {
+public:
+  StructType() : Type(Type::Kind::Struct) {}
+  json toJson() const;
+
+public:
+  std::vector<Field> fields;
+};
+
+class FunctionType : public Type {
+public:
+  FunctionType() : Type(Type::Kind::Function) {}
+  json toJson() const;
+
+public:
+  Type *result;
+  std::vector<Field> fields;
+};
+
+// -------------------- //
+// Stmt
+// -------------------- //
+
 class ExprStmt : public Stmt {
 public:
-  ExprStmt() : Stmt(Stmt::Type::Expr) {}
+  ExprStmt() : Stmt(Stmt::Kind::Expr) {}
   json toJson() const;
 
 public:
@@ -107,7 +173,7 @@ public:
 
 class BlockStmt : public Stmt {
 public:
-  BlockStmt() : Stmt(Stmt::Type::Block) {}
+  BlockStmt() : Stmt(Stmt::Kind::Block) {}
   json toJson() const;
 
 public:
@@ -116,17 +182,18 @@ public:
 
 class LetStmt : public Stmt {
 public:
-  LetStmt() : Stmt(Stmt::Type::Let) {}
+  LetStmt() : Stmt(Stmt::Kind::Let) {}
   json toJson() const;
 
 public:
   Ident *ident;
+  Type *type;
   Expr *expr;
 };
 
 class ReturnStmt : public Stmt {
 public:
-  ReturnStmt() : Stmt(Stmt::Type::Return) {}
+  ReturnStmt() : Stmt(Stmt::Kind::Return) {}
   json toJson() const;
 
 public:
@@ -135,7 +202,7 @@ public:
 
 class IfStmt : public Stmt {
 public:
-  IfStmt() : Stmt(Stmt::Type::If) {}
+  IfStmt() : Stmt(Stmt::Kind::If) {}
   json toJson() const;
 
 public:
@@ -144,35 +211,24 @@ public:
   Stmt *else_block;
 };
 
-class Field {
-public:
-  Ident name;
-  Ident type;
-};
-
-class FuncType {
-public:
-  json toJson() const;
-
-public:
-  Ident result;
-  std::vector<Field> fields;
-};
+// -------------------- //
+// Decl
+// -------------------- //
 
 class FuncDecl : public Decl {
 public:
-  FuncDecl() : Decl(Decl::Type::Func) {}
+  FuncDecl() : Decl(Decl::Kind::Func) {}
   json toJson() const;
 
 public:
   std::string name;
-  FuncType func_type;
+  FunctionType *func_type;
   BlockStmt *body;
 };
 
 class ConstDecl : public Decl {
 public:
-  ConstDecl() : Decl(Decl::Type::Const) {}
+  ConstDecl() : Decl(Decl::Kind::Const) {}
   json toJson() const;
 
 public:
@@ -182,20 +238,21 @@ public:
 
 class ImportDecl : public Decl {
 public:
-  ImportDecl() : Decl(Decl::Type::Import) {}
+  ImportDecl() : Decl(Decl::Kind::Import) {}
   json toJson() const;
 
 public:
   Ident *package;
 };
 
-class Program : public Node {
+class TypeDecl : public Decl {
 public:
+  TypeDecl() : Decl(Decl::Kind::Type) {}
   json toJson() const;
 
 public:
-  std::string path;
-  std::vector<Decl *> decls;
+  Ident *name;
+  Type *type;
 };
 
 } // namespace yslang

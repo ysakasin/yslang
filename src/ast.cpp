@@ -3,6 +3,10 @@
 
 using namespace yslang;
 
+// -------------------- //
+// Expr
+// -------------------- //
+
 json BinaryExpr::toJson() const {
   json j;
   std::stringstream ss;
@@ -54,6 +58,50 @@ json BasicLit::toJson() const {
   return j;
 }
 
+// -------------------- //
+// Type
+// -------------------- //
+
+json Field::toJson() const {
+  json j;
+  j["kind"] = "Field";
+  j["name"] = name->toJson();
+  j["type"] = type->toJson();
+  return j;
+}
+
+json IdentType::toJson() const {
+  json j;
+  j["kind"] = "IdentType";
+  j["name"] = name->toJson();
+  return j;
+}
+
+json StructType::toJson() const {
+  json j;
+  j["kind"] = "StructType";
+  j["fields"] = json::array();
+  for (const auto &field : fields) {
+    j["fields"].push_back(field.toJson());
+  }
+  return j;
+}
+
+json FunctionType::toJson() const {
+  json j;
+  j["kind"] = "FunctionType";
+  j["result"] = result->toJson();
+  j["fields"] = json::array();
+  for (const auto &field : fields) {
+    j["fields"].push_back(field.toJson());
+  }
+  return j;
+}
+
+// -------------------- //
+// Stmt
+// -------------------- //
+
 json BlockStmt::toJson() const {
   json j;
   j["kind"] = "BlockStmt";
@@ -68,7 +116,12 @@ json LetStmt::toJson() const {
   json j;
   j["kind"] = "LetStmt";
   j["ident"] = ident->toJson();
-  j["expr"] = expr->toJson();
+  if (type != nullptr) {
+    j["type"] = type->toJson();
+  }
+  if (expr != nullptr) {
+    j["expr"] = expr->toJson();
+  }
   return j;
 }
 
@@ -93,24 +146,15 @@ json IfStmt::toJson() const {
   return j;
 }
 
-json FuncType::toJson() const {
-  json j;
-  j["result"] = result.toJson();
-  j["args"] = json::array();
-  for (const auto &arg : fields) {
-    json field;
-    field["name"] = arg.name.name;
-    field["type"] = arg.type.name;
-    j["args"].push_back(field);
-  }
-  return j;
-}
+// -------------------- //
+// Decl
+// -------------------- //
 
 json FuncDecl::toJson() const {
   json j;
   j["kind"] = "FuncDecl";
   j["name"] = name;
-  j["type"] = func_type.toJson();
+  j["type"] = func_type->toJson();
   j["body"] = body->toJson();
   return j;
 }
@@ -127,6 +171,14 @@ json ImportDecl::toJson() const {
   json j;
   j["kind"] = "ImportDecl";
   j["package"] = package->toJson();
+  return j;
+}
+
+json TypeDecl::toJson() const {
+  json j;
+  j["kind"] = "TypeDecl";
+  j["name"] = name->toJson();
+  j["type"] = type->toJson();
   return j;
 }
 

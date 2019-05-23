@@ -63,3 +63,19 @@ TEST_CASE("Check all tokens2", "[lexer]") {
   TEST_TOKEN(lexer, yslang::TokenType::BraceR, "")
   TEST_TOKEN(lexer, yslang::TokenType::TEOF, "")
 }
+
+TEST_CASE("Lex struct keyword", "[lexer]") {
+  std::string input = "struct Hoge {\n"
+                      "  x int\n"
+                      "}\n";
+
+  yslang::Lexer lexer(input);
+
+  TEST_TOKEN(lexer, yslang::TokenType::Struct, "")
+  TEST_TOKEN(lexer, yslang::TokenType::Ident, "Hoge")
+  TEST_TOKEN(lexer, yslang::TokenType::BraceL, "")
+  TEST_TOKEN(lexer, yslang::TokenType::Ident, "x")
+  TEST_TOKEN(lexer, yslang::TokenType::Ident, "int")
+  TEST_TOKEN(lexer, yslang::TokenType::BraceR, "")
+  TEST_TOKEN(lexer, yslang::TokenType::TEOF, "")
+}
