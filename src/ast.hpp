@@ -144,6 +144,8 @@ public:
   StructType() : Type(Type::Kind::Struct) {}
   json toJson() const;
 
+  unsigned int index(const std::string &field) const;
+
 public:
   std::vector<Field> fields;
 };

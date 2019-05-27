@@ -20,17 +20,48 @@ void CodeGen::visitProgram(Program *program) {
 
 void CodeGen::visitDecl(Decl *decl) {
   switch (decl->type) {
-  case Decl::Type::Func:
-    visitFuncDecl((FuncDecl *)decl);
+  case Decl::Kind::Func:
+    visitFuncDecl(dynamic_cast<FuncDecl *>(decl));
     break;
-  case Decl::Type::Const:
+  case Decl::Kind::Const:
     visitConstDecl(dynamic_cast<ConstDecl *>(decl));
+    break;
+  case Decl::Kind::Type:
+    visitTypeDecl(dynamic_cast<TypeDecl *>(decl));
     break;
   default:;
   }
 }
 
+llvm::Type *CodeGen::getType(Type *type) {
+  if (type->kind == Type::Kind::Ident) {
+    IdentType *ident_type = dynamic_cast<IdentType *>(type);
+    return getTypeByName(ident_type->name->name);
+  } else if (type->kind == Type::Kind::Struct) {
+    StructType *struct_type = dynamic_cast<StructType *>(type);
+
+    std::vector<llvm::Type *> fields;
+    for (const auto &field : struct_type->fields) {
+      fields.push_back(getType(field.type));
+    }
+
+    return llvm::StructType::get(context, fields);
+  } else {
+    return nullptr;
+  }
+}
+
 llvm::Type *CodeGen::getTypeByName(const std::string &name) {
+  llvm::Type *type = types[name];
+  if (type != nullptr) {
+    return type;
+  }
+
+  type = module->getTypeByName(name);
+  if (type != nullptr) {
+    return type;
+  }
+
   if (name == "i64") {
     return builder.getInt64Ty();
   } else if (name == "void") {
@@ -41,13 +72,12 @@ llvm::Type *CodeGen::getTypeByName(const std::string &name) {
   }
 }
 
-llvm::FunctionType *CodeGen::getFuncType(const FunctionType &funcType) {
-  std::vector<llvm::Type *> param_types;
-  llvm::Type *funcResult;
-  funcResult = getTypeByName(funcType.result->name);
+llvm::FunctionType *CodeGen::getFuncType(FunctionType *funcType) {
+  llvm::Type *funcResult = getType(funcType->result);
 
-  for (const auto &fields : funcType.fields) {
-    param_types.push_back(getTypeByName(fields.type.name));
+  std::vector<llvm::Type *> param_types;
+  for (const auto &field : funcType->fields) {
+    param_types.push_back(getType(field.type));
   }
 
   return llvm::FunctionType::get(funcResult, param_types, false);
@@ -61,8 +91,8 @@ void CodeGen::visitFuncDecl(FuncDecl *func_decl) {
   builder.SetInsertPoint(bblock);
 
   llvm::Function::arg_iterator arg_iter = func->arg_begin();
-  for (const auto &field : func_decl->func_type.fields) {
-    arg_iter->setName(field.name.name);
+  for (const auto &field : func_decl->func_type->fields) {
+    arg_iter->setName(field.name->name);
     ++arg_iter;
   }
 
@@ -81,6 +111,27 @@ void CodeGen::visitConstDecl(ConstDecl *const_decl) {
                                constant, const_decl->name);
 }
 
+void CodeGen::visitTypeDecl(TypeDecl *type_decl) {
+  if (type_decl->type->kind == Type::Kind::Ident) {
+    IdentType *ident_type = dynamic_cast<IdentType *>(type_decl->type);
+    llvm::Type *type = getTypeByName(ident_type->name->name);
+
+    this->types[type_decl->name->name] = type;
+  } else if (type_decl->type->kind == Type::Kind::Struct) {
+    StructType *struct_type = dynamic_cast<StructType *>(type_decl->type);
+
+    std::vector<llvm::Type *> fields;
+    for (const auto &field : struct_type->fields) {
+      fields.push_back(getType(field.type));
+    }
+
+    auto *type = llvm::StructType::get(context, fields);
+    type->setName(type_decl->name->name);
+
+    this->structs[type_decl->name->name] = struct_type;
+  }
+}
+
 void CodeGen::visitBlock(BlockStmt *block) {
   for (Stmt *stmt : block->stmts) {
     visitStmt(stmt);
@@ -88,27 +139,45 @@ void CodeGen::visitBlock(BlockStmt *block) {
 }
 
 void CodeGen::visitStmt(Stmt *stmt) {
-  switch (stmt->type) {
-  case Stmt::Type::Let:
+  switch (stmt->kind) {
+  case Stmt::Kind::Let:
     visitLetStmt((LetStmt *)stmt);
     break;
-  case Stmt::Type::Return:
+  case Stmt::Kind::Return:
     visitReturnStmt((ReturnStmt *)stmt);
     break;
-  case Stmt::Type::If:
+  case Stmt::Kind::If:
     visitIfStmt((IfStmt *)stmt);
     break;
-  // case Stmt::Type::ExprStmt:
+  case Stmt::Kind::Expr:
+    visitExprStmt(dynamic_cast<ExprStmt *>(stmt));
+    break;
   default:
     error("visitStmt");
   }
 }
 
 void CodeGen::visitLetStmt(LetStmt *stmt) {
-  auto *val = genExpr(stmt->expr);
-  auto *alloca = builder.CreateAlloca(val->getType(), 0, stmt->ident->name);
+  llvm::Type *type = nullptr;
+
+  if (stmt->type != nullptr) {
+    type = getType(stmt->type);
+  }
+
+  llvm::Value *val = nullptr;
+  if (stmt->expr != nullptr) {
+    val = genExpr(stmt->expr);
+    if (type == nullptr) {
+      type = val->getType();
+    }
+  }
+
+  auto *alloca = builder.CreateAlloca(type, 0, stmt->ident->name);
   local_vals.emplace(stmt->ident->name, alloca);
-  builder.CreateStore(val, alloca);
+
+  if (val != nullptr) {
+    builder.CreateStore(val, alloca);
+  }
 }
 
 void CodeGen::visitReturnStmt(ReturnStmt *stmt) {
@@ -144,6 +213,10 @@ void CodeGen::visitIfStmt(IfStmt *stmt) {
   builder.SetInsertPoint(merge_block);
 }
 
+void CodeGen::visitExprStmt(ExprStmt *stmt) {
+  genExpr(stmt->expr);
+}
+
 llvm::Value *CodeGen::genExpr(Expr *expr) {
   switch (expr->type) {
   case Expr::Type::Ident:
@@ -154,6 +227,8 @@ llvm::Value *CodeGen::genExpr(Expr *expr) {
     return genCallExpr((CallExpr *)expr);
   case Expr::Type::BinaryExpr:
     return genBinaryExpr((BinaryExpr *)expr);
+  case Expr::Type::RefExpr:
+    return genRefExpr(dynamic_cast<RefExpr *>(expr));
   default:
     error("unknown expression at genExpr");
     return nullptr;
@@ -208,6 +283,10 @@ llvm::Value *CodeGen::genCallExpr(CallExpr *callExpr) {
 }
 
 llvm::Value *CodeGen::genBinaryExpr(BinaryExpr *expr) {
+  if (expr->op == TokenType::Assign) {
+    return genAssignExpr(expr);
+  }
+
   llvm::Value *lhs = genExpr(expr->lhs);
   llvm::Value *rhs = genExpr(expr->rhs);
   switch (expr->op) {
@@ -223,4 +302,54 @@ llvm::Value *CodeGen::genBinaryExpr(BinaryExpr *expr) {
     error(ss.str());
     throw;
   }
+}
+
+llvm::Value *CodeGen::genAssignExpr(BinaryExpr *expr) {
+  llvm::Value *dist = getRef(expr->lhs);
+  llvm::Value *src = genExpr(expr->rhs);
+  return builder.CreateStore(src, dist);
+
+  error("unsupported assigner");
+  return nullptr;
+}
+
+llvm::Value *CodeGen::genRefExpr(RefExpr *expr) {
+  llvm::Value *receiver = genExpr(expr->receiver);
+  llvm::Type *type = receiver->getType();
+  const auto &type_name = type->getStructName();
+  StructType *struct_type = this->structs[type_name];
+
+  unsigned int index = struct_type->index(expr->ref->name);
+  return builder.CreateExtractValue(receiver, index);
+}
+
+llvm::Value *CodeGen::getRef(Expr *expr) {
+  switch (expr->type) {
+  case Expr::Type::Ident:
+    return getRefIdent(dynamic_cast<Ident *>(expr));
+  case Expr::Type::RefExpr:
+    return getRefRefExpr(dynamic_cast<RefExpr *>(expr));
+  default:
+    error("can not get ref of expression");
+    return nullptr;
+  }
+}
+
+llvm::Value *CodeGen::getRefIdent(Ident *ident) {
+  auto itr = local_vals.find(ident->name);
+  if (itr != local_vals.end()) {
+    return itr->second;
+  }
+  error("undefined value at getRefIdent");
+  return nullptr;
+}
+
+llvm::Value *CodeGen::getRefRefExpr(RefExpr *expr) {
+  llvm::Value *receiver = getRef(expr->receiver);
+  llvm::Type *type = receiver->getType()->getPointerElementType();
+  const auto &type_name = type->getStructName();
+  StructType *struct_type = this->structs[type_name];
+
+  unsigned int index = struct_type->index(expr->ref->name);
+  return builder.CreateStructGEP(receiver, index);
 }

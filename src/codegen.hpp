@@ -21,20 +21,33 @@ private:
   void visitDecl(Decl *decl);
   void visitFuncDecl(FuncDecl *func);
   void visitConstDecl(ConstDecl *constDecl);
+  void visitTypeDecl(TypeDecl *typeDecl);
   void visitBlock(BlockStmt *block);
+
+  // Statement
   void visitStmt(Stmt *stmt);
   void visitLetStmt(LetStmt *stmt);
   void visitReturnStmt(ReturnStmt *stmt);
   void visitIfStmt(IfStmt *stmt);
+  void visitExprStmt(ExprStmt *stmt);
 
   llvm::Value *genExpr(Expr *expr);
   llvm::Value *genIdent(Ident *ident);
   llvm::Value *genBasicLit(BasicLit *lit);
   llvm::Value *genCallExpr(CallExpr *lit);
   llvm::Value *genBinaryExpr(BinaryExpr *expr);
+  llvm::Value *genAssignExpr(BinaryExpr *expr);
+  llvm::Value *genRefExpr(RefExpr *expr);
 
-  llvm::FunctionType *getFuncType(const FunctionType &type);
+  llvm::Value *getRef(Expr *expr);
+  llvm::Value *getRefIdent(Ident *ident);
+  llvm::Value *getRefRefExpr(RefExpr *ref);
+
+  llvm::Type *getType(Type *type);
+  llvm::StructType *getStructType(StructType *type);
+  llvm::FunctionType *getFuncType(FunctionType *type);
   llvm::Type *getTypeByName(const std::string &name);
+  void setTypeAlias(const std::string &name, llvm::Type *type);
 
 private:
   llvm::LLVMContext context;
@@ -43,5 +56,7 @@ private:
 
   llvm::Function *curFunc;
   std::map<std::string, llvm::AllocaInst *> local_vals;
+  std::map<std::string, llvm::Type *> types;
+  std::map<std::string, StructType *> structs;
 };
 } // namespace yslang

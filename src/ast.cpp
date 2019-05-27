@@ -87,6 +87,17 @@ json StructType::toJson() const {
   return j;
 }
 
+unsigned int StructType::index(const std::string &field) const {
+  unsigned int i = 0;
+  for (const Field &f : fields) {
+    if (f.name->name == field) {
+      break;
+    }
+    i++;
+  }
+  return i;
+}
+
 json FunctionType::toJson() const {
   json j;
   j["kind"] = "FunctionType";

@@ -56,16 +56,14 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  /*
-    yslang::CodeGen codegen;
-    codegen.generate(&program);
-    auto module = codegen.getModule();
+  yslang::CodeGen codegen;
+  codegen.generate(&program);
+  auto module = codegen.getModule();
 
-    std::error_code error_info;
-    llvm::raw_fd_ostream raw_stream("out.ll", error_info,
-                                    llvm::sys::fs::OpenFlags::F_None);
-    module->print(raw_stream, nullptr);
-    */
+  std::error_code error_info;
+  llvm::raw_fd_ostream raw_stream("out.ll", error_info,
+                                  llvm::sys::fs::OpenFlags::F_None);
+  module->print(raw_stream, nullptr);
 
   return 0;
 }
