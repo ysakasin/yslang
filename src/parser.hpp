@@ -51,12 +51,13 @@ private:
   // Expr
   Expr *parse_expression(Precedence precedence);
 
-  Expr *parse_literal();
+  BasicLit *parse_literal();
   Ident *parse_identifier();
 
   Expr *parse_infix_expression(Expr *left);
   Expr *parse_call_expression(Expr *left);
   Expr *parse_ref_expression(Expr *left);
+  Expr *parse_index_expression(Expr *left);
 
   std::vector<Expr *> parse_expression_list();
 
@@ -65,6 +66,7 @@ private:
   IdentType *parse_ident_type();
   StructType *parse_struct_type();
   FunctionType *parse_function_type();
+  ArrayType *parse_array_type();
   std::vector<Field> parse_params();
   std::vector<Field> parse_fields();
   Field parse_param();

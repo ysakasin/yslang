@@ -75,6 +75,12 @@ Token Lexer::next() {
   case '}':
     token.type = TokenType::BraceR;
     break;
+  case '[':
+    token.type = TokenType::BracketL;
+    break;
+  case ']':
+    token.type = TokenType::BracketR;
+    break;
   case '.':
     token.type = TokenType::Dot;
     break;

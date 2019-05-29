@@ -82,6 +82,10 @@ std::ostream &operator<<(std::ostream &out, const TokenType type) {
     return out << "BraceL";
   case TokenType::BraceR:
     return out << "BraceR";
+  case TokenType::BracketL:
+    return out << "BracketL";
+  case TokenType::BracketR:
+    return out << "BracketR";
   case TokenType::Dot:
     return out << "Dot";
   case TokenType::NewLine:

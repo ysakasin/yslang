@@ -42,6 +42,8 @@ enum class TokenType {
   ParenR,    // )
   BraceL,    // {
   BraceR,    // }
+  BracketL,  // [
+  BracketR,  // ]
   Dot,       // .
   NewLine,   // \n
 

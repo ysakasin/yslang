@@ -33,7 +33,7 @@ public:
 
 class Expr : public Node {
 public:
-  enum class Type { BasicLit, Ident, CallExpr, BinaryExpr, RefExpr };
+  enum class Type { BasicLit, Ident, CallExpr, BinaryExpr, RefExpr, IndexExpr };
   Expr(Type type) : type(type){};
 
 public:
@@ -42,7 +42,7 @@ public:
 
 class Type : public Node {
 public:
-  enum class Kind { Ident, Struct, Function };
+  enum class Kind { Ident, Struct, Function, Array };
   Type(Kind kind) : kind(kind){};
 
 public:
@@ -107,6 +107,16 @@ public:
   Ident *ref;
 };
 
+class IndexExpr : public Expr {
+public:
+  IndexExpr() : Expr(Expr::Type::IndexExpr) {}
+  json toJson() const;
+
+public:
+  Expr *receiver;
+  Expr *index;
+};
+
 class BasicLit : public Expr {
 public:
   BasicLit() : Expr(Expr::Type::BasicLit) {}
@@ -158,6 +168,16 @@ public:
 public:
   Type *result;
   std::vector<Field> fields;
+};
+
+class ArrayType : public Type {
+public:
+  ArrayType() : Type(Type::Kind::Array) {}
+  json toJson() const;
+
+public:
+  Type *element;
+  BasicLit *length;
 };
 
 // -------------------- //

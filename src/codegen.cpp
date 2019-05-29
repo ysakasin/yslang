@@ -1,5 +1,6 @@
 #include "./codegen.hpp"
 #include "./error.hpp"
+#include <cassert>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueSymbolTable.h>
 
@@ -46,6 +47,8 @@ llvm::Type *CodeGen::getType(Type *type) {
     }
 
     return llvm::StructType::get(context, fields);
+  } else if (type->kind == Type::Kind::Array) {
+    return getArrayType(dynamic_cast<ArrayType *>(type));
   } else {
     return nullptr;
   }
@@ -81,6 +84,12 @@ llvm::FunctionType *CodeGen::getFuncType(FunctionType *funcType) {
   }
 
   return llvm::FunctionType::get(funcResult, param_types, false);
+}
+
+llvm::ArrayType *CodeGen::getArrayType(ArrayType *arrayType) {
+  llvm::Type *elementType = getType(arrayType->element);
+  unsigned long long length = std::stoull(arrayType->length->value);
+  return llvm::ArrayType::get(elementType, length);
 }
 
 void CodeGen::visitFuncDecl(FuncDecl *func_decl) {
@@ -229,6 +238,8 @@ llvm::Value *CodeGen::genExpr(Expr *expr) {
     return genBinaryExpr((BinaryExpr *)expr);
   case Expr::Type::RefExpr:
     return genRefExpr(dynamic_cast<RefExpr *>(expr));
+  case Expr::Type::IndexExpr:
+    return genIndexExpr(dynamic_cast<IndexExpr *>(expr));
   default:
     error("unknown expression at genExpr");
     return nullptr;
@@ -323,12 +334,19 @@ llvm::Value *CodeGen::genRefExpr(RefExpr *expr) {
   return builder.CreateExtractValue(receiver, index);
 }
 
+llvm::Value *CodeGen::genIndexExpr(IndexExpr *expr) {
+  llvm::Value *p = getRefIndexExpr(expr);
+  return builder.CreateLoad(p);
+}
+
 llvm::Value *CodeGen::getRef(Expr *expr) {
   switch (expr->type) {
   case Expr::Type::Ident:
     return getRefIdent(dynamic_cast<Ident *>(expr));
   case Expr::Type::RefExpr:
     return getRefRefExpr(dynamic_cast<RefExpr *>(expr));
+  case Expr::Type::IndexExpr:
+    return getRefIndexExpr(dynamic_cast<IndexExpr *>(expr));
   default:
     error("can not get ref of expression");
     return nullptr;
@@ -352,4 +370,17 @@ llvm::Value *CodeGen::getRefRefExpr(RefExpr *expr) {
 
   unsigned int index = struct_type->index(expr->ref->name);
   return builder.CreateStructGEP(receiver, index);
+}
+
+llvm::Value *CodeGen::getRefIndexExpr(IndexExpr *expr) {
+  llvm::Value *receiver = getRef(expr->receiver);
+  llvm::Value *index = genExpr(expr->index);
+
+  // llvm::Type *type = receiver->getType();
+  // assert(type->isPointerTy());
+  // llvm::Type *arr = type->getPointerElementType();
+  // assert(arr->isArrayTy());
+  // llvm::Type *elementType = arr->getArrayElementType();
+  // assert(elementType != nullptr);
+  return builder.CreateGEP(receiver, { builder.getInt64(0), index });
 }

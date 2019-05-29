@@ -28,6 +28,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   infix_parse_functions[TokenType::LessEqual] = &Parser::parse_infix_expression;
   infix_parse_functions[TokenType::ParenL] = &Parser::parse_call_expression;
   infix_parse_functions[TokenType::Dot] = &Parser::parse_ref_expression;
+  infix_parse_functions[TokenType::BracketL] = &Parser::parse_index_expression;
 
   precedences[TokenType::Plus] = Precedence::SUM;
   precedences[TokenType::Minus] = Precedence::SUM;
@@ -42,6 +43,7 @@ Parser::Parser(const std::string &input) : lexer(input) {
   precedences[TokenType::ParenL] = Precedence::CALL;
   precedences[TokenType::Dot] = Precedence::CALL;
   precedences[TokenType::Assign] = Precedence::ASSIGN;
+  precedences[TokenType::BracketL] = Precedence::INDEX;
 }
 
 Program Parser::parse() {
@@ -128,6 +130,8 @@ Type *Parser::parse_type() {
     return parse_struct_type();
   case TokenType::ParenL:
     return parse_function_type();
+  case TokenType::BracketL:
+    return parse_array_type();
   default:
     ss << "unexpected type token at parse(): " << cur_token;
     error(ss.str());
@@ -158,6 +162,18 @@ FunctionType *Parser::parse_function_type() {
   func_type->result = parse_type();
 
   return func_type;
+}
+
+ArrayType *Parser::parse_array_type() {
+  ArrayType *array_type = new ArrayType();
+
+  expect(TokenType::BracketL);
+  array_type->length = parse_literal();
+  expect(TokenType::BracketR);
+
+  array_type->element = parse_type();
+
+  return array_type;
 }
 
 std::vector<Field> Parser::parse_params() {
@@ -346,7 +362,7 @@ Expr *Parser::parse_expression(Precedence precedence) {
   return left_expr;
 }
 
-Expr *Parser::parse_literal() {
+BasicLit *Parser::parse_literal() {
   BasicLit *lit = new BasicLit();
   lit->kind = cur_token.type;
   lit->value = std::move(cur_token.str);
@@ -405,6 +421,17 @@ Expr *Parser::parse_ref_expression(Expr *left) {
 
   expect(TokenType::Dot);
   expr->ref = parse_identifier();
+
+  return expr;
+}
+
+Expr *Parser::parse_index_expression(Expr *left) {
+  IndexExpr *expr = new IndexExpr();
+  expr->receiver = left;
+
+  expect(TokenType::BracketL);
+  expr->index = parse_expression(LOWEST);
+  expect(TokenType::BracketR);
 
   return expr;
 }

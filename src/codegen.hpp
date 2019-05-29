@@ -38,14 +38,17 @@ private:
   llvm::Value *genBinaryExpr(BinaryExpr *expr);
   llvm::Value *genAssignExpr(BinaryExpr *expr);
   llvm::Value *genRefExpr(RefExpr *expr);
+  llvm::Value *genIndexExpr(IndexExpr *expr);
 
   llvm::Value *getRef(Expr *expr);
   llvm::Value *getRefIdent(Ident *ident);
   llvm::Value *getRefRefExpr(RefExpr *ref);
+  llvm::Value *getRefIndexExpr(IndexExpr *ref);
 
   llvm::Type *getType(Type *type);
   llvm::StructType *getStructType(StructType *type);
   llvm::FunctionType *getFuncType(FunctionType *type);
+  llvm::ArrayType *getArrayType(ArrayType *type);
   llvm::Type *getTypeByName(const std::string &name);
   void setTypeAlias(const std::string &name, llvm::Type *type);
 

@@ -46,6 +46,14 @@ json RefExpr::toJson() const {
   return j;
 }
 
+json IndexExpr::toJson() const {
+  json j;
+  j["kind"] = "IndexExpr";
+  j["receiver"] = receiver->toJson();
+  j["index"] = index->toJson();
+  return j;
+}
+
 json BasicLit::toJson() const {
   json j;
   std::stringstream ss;
@@ -106,6 +114,14 @@ json FunctionType::toJson() const {
   for (const auto &field : fields) {
     j["fields"].push_back(field.toJson());
   }
+  return j;
+}
+
+json ArrayType::toJson() const {
+  json j;
+  j["kind"] = "ArrayType";
+  j["element"] = element->toJson();
+  j["length"] = length->toJson();
   return j;
 }
 
